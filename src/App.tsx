@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'styled-components'
 import { theme } from './theme'
 import { GlobalStyles } from './GlobalStyles'
-import { HomeScreen } from './components/HomeScreen'
+import { Router } from './Router'
 import { AppWrapper } from './App.styles'
 
 const queryClient = new QueryClient()
@@ -13,7 +13,7 @@ export function App() {
       <ThemeProvider theme={theme}>
         <GlobalStyles />
         <AppWrapper>
-          <HomeScreen />
+          <Router />
         </AppWrapper>
       </ThemeProvider>
     </QueryClientProvider>
