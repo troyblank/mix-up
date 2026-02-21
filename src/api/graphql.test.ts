@@ -1,4 +1,4 @@
-import { fetchLists, API_URL } from './graphql'
+import { fetchLists, fetchList, API_URL } from './graphql'
 import { mockJsonResponse } from '../testing/mocks/api'
 import { mockLists } from '../testing/mocks/lists'
 
@@ -70,5 +70,57 @@ describe('Graphql', () => {
     )
 
     await expect(fetchLists()).rejects.toThrow('Invalid lists response')
+  })
+
+  describe('fetchList', () => {
+    const listWithItems = {
+      id: '1',
+      name: 'TV Shows',
+      items: [
+        { id: '1', name: 'Show A' },
+        { id: '2', name: 'Show B' },
+      ],
+    }
+
+    it('Sends a request with the list query and id variable.', async () => {
+      const mockFetch = jest.mocked(global.fetch)
+      mockFetch.mockResolvedValue(
+        mockJsonResponse(true, { data: { list: listWithItems } }, 200, API_URL),
+      )
+
+      await fetchList('1')
+
+      const body = JSON.parse(String(mockFetch.mock.calls[0][1]?.body ?? '{}'))
+      expect(body.query).toContain('list')
+      expect(body.variables).toEqual({ id: '1' })
+    })
+
+    it('Returns the list with items when the API responds successfully.', async () => {
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(true, { data: { list: listWithItems } }, 200, API_URL),
+      )
+
+      const result = await fetchList('1')
+
+      expect(result).toEqual(listWithItems)
+    })
+
+    it('Returns null when the list is not found.', async () => {
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(true, { data: { list: null } }, 200, API_URL),
+      )
+
+      const result = await fetchList('999')
+
+      expect(result).toBeNull()
+    })
+
+    it('Throws when the server returns an error.', async () => {
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(false, { message: 'Server error' }, 500, API_URL),
+      )
+
+      await expect(fetchList('1')).rejects.toThrow()
+    })
   })
 })

@@ -1,3 +1,4 @@
+import type { FunctionComponent } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'styled-components'
 import { theme } from './theme'
@@ -7,7 +8,7 @@ import { AppWrapper } from './App.styles'
 
 const queryClient = new QueryClient()
 
-export function App() {
+export const App: FunctionComponent = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>

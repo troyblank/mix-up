@@ -7,9 +7,24 @@ export type List = {
   name: string
 }
 
+export type ListItem = {
+  id: string
+  name: string
+}
+
+export type ListWithItems = List & {
+  items: ListItem[]
+}
+
 export type ListsResponse = {
   data: {
     lists: List[]
+  }
+}
+
+export type ListResponse = {
+  data: {
+    list: ListWithItems | null
   }
 }
 
@@ -36,4 +51,30 @@ export async function fetchLists(): Promise<List[]> {
     throw new Error('Invalid lists response')
   }
   return data.data.lists
+}
+
+const LIST_QUERY = `
+  query List($id: ID!) {
+    list(id: $id) {
+      id
+      name
+      items {
+        id
+        name
+      }
+    }
+  }
+`
+
+export async function fetchList(id: string): Promise<ListWithItems | null> {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: LIST_QUERY, variables: { id } }),
+  })
+  const { data } = await getAndValidateResponseData<ListResponse>(
+    res,
+    'Failed to load list',
+  )
+  return data?.data?.list ?? null
 }
