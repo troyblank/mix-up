@@ -1,7 +1,8 @@
+import type { FunctionComponent } from 'react'
 import { HomePageWrapper, Title } from './HomePage.styles'
 import { Categories } from '../components/Categories'
 
-export function HomePage() {
+export const HomePage: FunctionComponent = () => {
   return (
     <HomePageWrapper as="main">
       <Title as="h1">Mix Up</Title>

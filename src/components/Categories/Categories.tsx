@@ -1,18 +1,14 @@
+import type { FunctionComponent } from 'react'
 import { ButtonList, ButtonLink } from './Categories.styles'
+import { ErrorAlert } from '../ErrorAlert'
 import { Loader } from '../Loader'
 import { useLists } from '../../hooks/useLists'
 
-export function Categories() {
+export const Categories: FunctionComponent = () => {
   const { data: lists, isLoading, isError, error } = useLists()
 
   if (isLoading) return <Loader text="Loading lists" />
-  if (isError) {
-    return (
-      <p role="alert">
-        Failed to load lists: {error instanceof Error ? error.message : 'Unknown error'}
-      </p>
-    )
-  }
+  if (isError) return <ErrorAlert message="Failed to load lists" error={error} />
   if (lists == null || lists.length === 0) return null
 
   return (

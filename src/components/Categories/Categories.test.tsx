@@ -21,14 +21,14 @@ describe('Categories', () => {
     })
   })
 
-  it('renders a list of links from the API', async () => {
+  it('Renders a list of links from the API.', async () => {
     render(<Categories />, { wrapper: createAllWrappers() })
     for (const list of lists) {
       expect(await screen.findByRole('link', { name: list.name })).toBeInTheDocument()
     }
   })
 
-  it('renders an alert when the API fails', async () => {
+  it('Renders an alert when the API fails.', async () => {
     jest.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -41,7 +41,7 @@ describe('Categories', () => {
     expect(alert).toHaveTextContent(/failed to load lists/i)
   })
 
-  it('renders Unknown error when the error is not an Error instance', async () => {
+  it('Renders Unknown error when the error is not an Error instance.', async () => {
     jest.mocked(global.fetch).mockImplementationOnce(() => Promise.reject('network failure'))
 
     render(<Categories />, { wrapper: createAllWrappers() })
@@ -49,7 +49,7 @@ describe('Categories', () => {
     expect(alert).toHaveTextContent(/Unknown error/)
   })
 
-  it('renders nothing when lists is empty', async () => {
+  it('Renders nothing when lists is empty.', async () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,

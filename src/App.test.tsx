@@ -13,42 +13,62 @@ function renderApp(initialRoute = '/') {
   )
 }
 
+function createFetchMock() {
+  return jest.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString()
+    if (url !== API_URL) return Promise.reject(new Error('Unknown URL'))
+
+    const body = init?.body ? JSON.parse(String(init.body)) : {}
+    const isListQuery = body.variables?.id != null
+
+    if (isListQuery) {
+      const id = body.variables.id
+      const listData: Record<string, unknown> = {
+        1: { id: '1', name: 'TV Shows', items: [{ id: '1', name: 'Show A' }] },
+        abc123: { id: 'abc123', name: 'Test List', items: [{ id: '1', name: 'Item 1' }] },
+      }
+      return Promise.resolve({
+        ok: true,
+        headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
+        json: () =>
+          Promise.resolve({
+            data: { list: listData[id] ?? null },
+          }),
+      } as unknown as Response)
+    }
+
+    return Promise.resolve({
+      ok: true,
+      headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
+      json: () =>
+        Promise.resolve({
+          data: { lists: [mockList({ id: '1', name: 'My List' })] },
+        }),
+    } as unknown as Response)
+  })
+}
+
 describe('App', () => {
   beforeEach(() => {
-    global.fetch = jest.fn((input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString()
-      if (url === API_URL) {
-        return Promise.resolve({
-          ok: true,
-          headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
-          json: () =>
-            Promise.resolve({
-              data: { lists: [mockList({ id: '1', name: 'My List' })] },
-            }),
-        } as Response)
-      }
-      return Promise.reject(new Error('Unknown URL'))
-    })
+    global.fetch = createFetchMock()
   })
 
-  it('renders the home page at /', async () => {
+  it('Renders the home page at /.', async () => {
     renderApp('/')
     expect(screen.getByRole('heading', { name: /mix up/i })).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: 'My List' })).toBeInTheDocument()
   })
 
-  it('renders the list page at /list/:listId', () => {
+  it('Renders the list page at /list/:listId.', async () => {
     renderApp('/list/abc123')
-    expect(screen.getByRole('heading', { name: /list/i })).toBeInTheDocument()
-    expect(screen.getByText(/list id: abc123/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Item 1/i)).toBeInTheDocument()
   })
 
-  it('navigates to list page when clicking a list link', async () => {
+  it('Navigates to list page when clicking a list link.', async () => {
     const user = userEvent.setup()
     renderApp('/')
     const link = await screen.findByRole('link', { name: 'My List' })
     await user.click(link)
-    expect(screen.getByRole('heading', { name: /list/i })).toBeInTheDocument()
-    expect(screen.getByText(/list id: 1/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Show A/i)).toBeInTheDocument()
   })
 })
