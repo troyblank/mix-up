@@ -12,7 +12,6 @@ export const ButtonList = styled.ul`
 
 const buttonStyles = `
   display: block;
-  width: 100%;
   padding: 0.75rem 1rem;
   font-size: 1rem;
   font-family: inherit;
