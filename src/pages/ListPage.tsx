@@ -1,7 +1,7 @@
 import type { FunctionComponent } from 'react'
 import { useParams } from 'react-router-dom'
 import styled from 'styled-components'
-import { RandomPick } from '../components/RandomPick'
+import { RandomItem } from '../components/RandomItem'
 
 const ListPageWrapper = styled.main`
   max-width: 40rem;
@@ -13,7 +13,7 @@ export const ListPage: FunctionComponent = () => {
 
   return (
     <ListPageWrapper>
-      <RandomPick id={listId} />
+      <RandomItem id={listId} />
     </ListPageWrapper>
   )
 }

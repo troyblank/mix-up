@@ -2,9 +2,12 @@ import { getAndValidateResponseData } from '../utils/apiCommunication'
 
 export const API_URL = 'https://mix-up-api.troyblank.com/graphql'
 
+export type ListType = 'pick' | 'list'
+
 export type List = {
   id: string
   name: string
+  type: ListType
 }
 
 export type ListItem = {
@@ -58,6 +61,7 @@ const LIST_QUERY = `
     list(id: $id) {
       id
       name
+      type
       items {
         id
         name

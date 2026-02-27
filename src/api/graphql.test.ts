@@ -76,6 +76,7 @@ describe('Graphql', () => {
     const listWithItems = {
       id: '1',
       name: 'TV Shows',
+      type: 'pick' as const,
       items: [
         { id: '1', name: 'Show A' },
         { id: '2', name: 'Show B' },
