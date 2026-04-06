@@ -29,12 +29,12 @@ describe('RandomPick', () => {
   })
 
   it('Shows loading state.', () => {
-    const { getByText } = render(<RandomPick id="1" />, { wrapper: createAllWrappers() })
+    const { getByText } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
     expect(getByText('Loading pick')).toBeInTheDocument()
   })
 
   it('Shows a random item when list loads.', async () => {
-    const { findByText } = render(<RandomPick id="1" />, { wrapper: createAllWrappers() })
+    const { findByText } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
     const itemNames = listWithItems.items.map((i) => i.name)
     const pickedElement = await findByText((content) =>
       itemNames.some((name) => content === name),
@@ -50,7 +50,7 @@ describe('RandomPick', () => {
       json: () => Promise.resolve({ message: 'Server error' }),
     } as unknown as Response)
 
-    const { findByRole } = render(<RandomPick id="1" />, { wrapper: createAllWrappers() })
+    const { findByRole } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
     const alert = await findByRole('alert')
     expect(alert).toHaveTextContent(/failed to load pick/i)
   })
@@ -71,7 +71,7 @@ describe('RandomPick', () => {
       } as unknown as Response),
     )
 
-    const { findByRole } = render(<RandomPick id="1" />, { wrapper: createAllWrappers() })
+    const { findByRole } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
     expect(await findByRole('heading', { name: listWithItemNoName.name })).toBeInTheDocument()
   })
 
@@ -84,7 +84,7 @@ describe('RandomPick', () => {
       } as unknown as Response),
     )
 
-    const { container, getByText } = render(<RandomPick id="1" />, {
+    const { container, getByText } = render(<RandomPick id={'1'} />, {
       wrapper: createAllWrappers(),
     })
     await waitForElementToBeRemoved(() => getByText('Loading pick'))
@@ -104,7 +104,7 @@ describe('RandomPick', () => {
       } as unknown as Response),
     )
 
-    const { findByText } = render(<RandomPick id="1" />, { wrapper: createAllWrappers() })
+    const { findByText } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
     expect(await findByText(/this list has no items/i)).toBeInTheDocument()
   })
 })

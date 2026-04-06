@@ -15,7 +15,7 @@ function renderWithRoute(route: string) {
   return render(
     <MemoryRouter initialEntries={[route]}>
       <Routes>
-        <Route path="/list/:listId" element={<ListPage />} />
+        <Route path={'/list/:listId'} element={<ListPage />} />
       </Routes>
     </MemoryRouter>,
     { wrapper: createWrappersWithoutRouter() },

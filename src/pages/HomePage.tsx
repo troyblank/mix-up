@@ -4,8 +4,8 @@ import { Categories } from '../components/Categories'
 
 export const HomePage: FunctionComponent = () => {
   return (
-    <HomePageWrapper as="main">
-      <Title as="h1">Mix Up</Title>
+    <HomePageWrapper as={'main'}>
+      <Title as={'h1'}>Mix Up</Title>
       <Categories />
     </HomePageWrapper>
   )

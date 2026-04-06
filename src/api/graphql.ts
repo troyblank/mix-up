@@ -31,6 +31,17 @@ export type ListResponse = {
   }
 }
 
+export type CreateListInput = {
+  name: string
+  type: ListType
+}
+
+export type CreateListResponse = {
+  data: {
+    createList: Pick<List, 'id' | 'name' | 'type'>
+  }
+}
+
 const LISTS_QUERY = `
   query Lists {
     lists {
@@ -40,7 +51,7 @@ const LISTS_QUERY = `
   }
 `
 
-export async function fetchLists(): Promise<List[]> {
+export const fetchLists = async (): Promise<List[]> => {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -70,7 +81,9 @@ const LIST_QUERY = `
   }
 `
 
-export async function fetchList(id: string): Promise<ListWithItems | null> {
+export const fetchList = async (
+  id: string,
+): Promise<ListWithItems | null> => {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -81,4 +94,35 @@ export async function fetchList(id: string): Promise<ListWithItems | null> {
     'Failed to load list',
   )
   return data?.data?.list ?? null
+}
+
+const CREATE_LIST_MUTATION = `
+  mutation CreateList($input: CreateListInput!) {
+    createList(input: $input) {
+      id
+      name
+      type
+    }
+  }
+`
+
+export const createList = async (
+  input: CreateListInput,
+): Promise<Pick<List, 'id' | 'name' | 'type'>> => {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: CREATE_LIST_MUTATION,
+      variables: { input },
+    }),
+  })
+  const { data } = await getAndValidateResponseData<CreateListResponse>(
+    res,
+    'Failed to create list',
+  )
+  if (data?.data?.createList == null) {
+    throw new Error('Invalid create list response')
+  }
+  return data.data.createList
 }

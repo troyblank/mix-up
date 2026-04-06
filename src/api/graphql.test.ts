@@ -1,6 +1,6 @@
-import { fetchLists, fetchList, API_URL } from './graphql'
+import { createList, fetchLists, fetchList, API_URL } from './graphql'
 import { mockJsonResponse } from '../testing/mocks/api'
-import { mockLists } from '../testing/mocks/lists'
+import { mockList, mockLists } from '../testing/mocks/lists'
 
 describe('Graphql', () => {
   beforeEach(() => {
@@ -122,6 +122,66 @@ describe('Graphql', () => {
       )
 
       await expect(fetchList('1')).rejects.toThrow()
+    })
+  })
+
+  describe('Create List', () => {
+    const input = { name: 'New list', type: 'pick' as const }
+    const createdList = mockList({
+      id: 'new-id',
+      name: input.name,
+      type: input.type,
+    })
+
+    it('Sends a create mutation with variables.', async () => {
+      const mockFetch = jest.mocked(global.fetch)
+      mockFetch.mockResolvedValue(
+        mockJsonResponse(
+          true,
+          { data: { createList: createdList } },
+          200,
+          API_URL,
+        ),
+      )
+
+      await createList(input)
+
+      const body = JSON.parse(String(mockFetch.mock.calls[0][1]?.body ?? '{}'))
+      expect(body.query).toContain('createList')
+      expect(body.variables).toEqual({ input })
+    })
+
+    it('Returns the created list when the API responds successfully.', async () => {
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(
+          true,
+          { data: { createList: createdList } },
+          200,
+          API_URL,
+        ),
+      )
+
+      const result = await createList(input)
+
+      expect(result).toEqual(createdList)
+    })
+
+    it('Throws when createList is missing from the response.', async () => {
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(true, { data: {} }, 200, API_URL),
+      )
+
+      await expect(createList(input)).rejects.toThrow(
+        'Invalid create list response',
+      )
+    })
+
+    it('Throws when the server returns an error.', async () => {
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(false, { message: 'Server error' }, 500, API_URL),
+      )
+
+      await expect(createList(input)).rejects.toThrow()
     })
   })
 })
