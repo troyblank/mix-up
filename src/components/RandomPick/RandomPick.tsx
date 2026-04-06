@@ -21,8 +21,9 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   }, [list?.items])
 
   if (!id) return null
-  if (isLoading) return <Loader text="Loading pick" />
-  if (isError) return <ErrorAlert message="Failed to load pick" error={error} />
+  if (isLoading) return <Loader text={'Loading pick'} />
+  if (isError)
+    return <ErrorAlert message={'Failed to load pick'} error={error} />
   if (list == null) return null
   if (list.items.length === 0) {
     return <p>This list has no items.</p>

@@ -6,7 +6,7 @@ type ErrorAlertProps = {
 }
 
 export const ErrorAlert: FunctionComponent<ErrorAlertProps> = ({ message, error }) => (
-  <p role="alert">
+  <p role={'alert'}>
     {message}: {error instanceof Error ? error.message : 'Unknown error'}
   </p>
 )

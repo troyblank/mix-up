@@ -5,6 +5,9 @@ export const theme = {
     textMuted: '#a8a8a8',
     accent: '#8ec9d2',
     accentHover: '#7ab8c2',
+    surface: '#2a2d36',
+    danger: '#a84848',
+    shadow: 'rgba(0, 0, 0, 0.35)',
   },
   font: {
     sizeBase: '16px',

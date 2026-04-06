@@ -35,6 +35,7 @@ module.exports = {
           jsx: 'react-jsx',
           allowImportingTsExtensions: true,
           noEmit: true,
+          ignoreDeprecations: '6.0',
         },
       },
     ],

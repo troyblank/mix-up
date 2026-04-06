@@ -7,8 +7,8 @@ type LoaderProps = {
 
 export const Loader: FunctionComponent<LoaderProps> = ({ text }) => {
   return (
-    <LoaderWrapper aria-busy="true" aria-live="polite">
-      <Spinner aria-hidden="true" />
+    <LoaderWrapper aria-busy={'true'} aria-live={'polite'}>
+      <Spinner aria-hidden={'true'} />
       <LoaderLabel>{text}</LoaderLabel>
     </LoaderWrapper>
   )

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'styled-components'
+import { AuthProvider } from '../contexts'
 import { theme } from '../theme'
 
 function createQueryClient() {
@@ -27,7 +28,9 @@ export function createAllWrappers() {
     return (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
-          <MemoryRouter>{children}</MemoryRouter>
+          <AuthProvider>
+            <MemoryRouter>{children}</MemoryRouter>
+          </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
     )
