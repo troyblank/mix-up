@@ -1,14 +1,19 @@
 import type { ListWithItems } from '../../api/graphql'
 import { render, waitForElementToBeRemoved } from '@testing-library/react'
+import Chance from 'chance'
 import { API_URL } from '../../api/graphql'
 import { mockListWithItems } from '../../testing/mocks/lists'
-import { createAllWrappers } from '../../testing/wrappers'
+import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
 import { RandomPick } from './RandomPick'
+
+const chance = new Chance()
 
 describe('RandomPick', () => {
   let listWithItems: ReturnType<typeof mockListWithItems>
+  let listId: string
 
   beforeEach(() => {
+    listId = chance.guid()
     listWithItems = mockListWithItems()
     global.fetch = jest.fn((input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString()
@@ -23,22 +28,29 @@ describe('RandomPick', () => {
 
   it('Returns null when id is undefined.', () => {
     const { container } = render(<RandomPick id={undefined} />, {
-      wrapper: createAllWrappers(),
+      wrapper: createAllWrappersWithoutAuth(),
     })
+
     expect(container).toBeEmptyDOMElement()
   })
 
   it('Shows loading state.', () => {
-    const { getByText } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
+    const { getByText } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
     expect(getByText('Loading pick')).toBeInTheDocument()
   })
 
   it('Shows a random item when list loads.', async () => {
-    const { findByText } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
+    const { findByText } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
     const itemNames = listWithItems.items.map((i) => i.name)
     const pickedElement = await findByText((content) =>
       itemNames.some((name) => content === name),
     )
+
     expect(pickedElement).toBeInTheDocument()
   })
 
@@ -50,15 +62,18 @@ describe('RandomPick', () => {
       json: () => Promise.resolve({ message: 'Server error' }),
     } as unknown as Response)
 
-    const { findByRole } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
+    const { findByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
     const alert = await findByRole('alert')
+
     expect(alert).toHaveTextContent(/failed to load pick/i)
   })
 
   it('Handles item with undefined name.', async () => {
     const listWithItemNoName = {
       ...mockListWithItems(),
-      items: [{ id: '1' }],
+      items: [{ id: chance.guid() }],
     } as ListWithItems
     global.fetch = jest.fn(() =>
       Promise.resolve({
@@ -71,7 +86,10 @@ describe('RandomPick', () => {
       } as unknown as Response),
     )
 
-    const { findByRole } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
+    const { findByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
     expect(await findByRole('heading', { name: listWithItemNoName.name })).toBeInTheDocument()
   })
 
@@ -84,9 +102,11 @@ describe('RandomPick', () => {
       } as unknown as Response),
     )
 
-    const { container, getByText } = render(<RandomPick id={'1'} />, {
-      wrapper: createAllWrappers(),
+    const { container, getByText } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
     })
+
+    expect(getByText('Loading pick')).toBeInTheDocument()
     await waitForElementToBeRemoved(() => getByText('Loading pick'))
     expect(container).toBeEmptyDOMElement()
   })
@@ -104,7 +124,10 @@ describe('RandomPick', () => {
       } as unknown as Response),
     )
 
-    const { findByText } = render(<RandomPick id={'1'} />, { wrapper: createAllWrappers() })
+    const { findByText } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
     expect(await findByText(/this list has no items/i)).toBeInTheDocument()
   })
 })

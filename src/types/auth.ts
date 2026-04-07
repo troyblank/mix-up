@@ -6,3 +6,5 @@ export type SignInCredentials = {
 export type SignInOutput = {
   isUserComplete: boolean
 }
+
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'

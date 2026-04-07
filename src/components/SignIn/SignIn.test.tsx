@@ -2,8 +2,8 @@ import Chance from 'chance'
 import { render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useAuth } from '../../contexts'
-import { HOME_PATH } from '../../constants/paths'
-import { createAllWrappers } from '../../testing/wrappers'
+import { HOME_PATH, LOGIN_PATH } from '../../constants/paths'
+import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
 import { SignIn } from './SignIn'
 
 jest.mock('../../contexts', () => ({
@@ -25,12 +25,34 @@ describe('Sign in', () => {
     mockNavigate.mockClear()
     jest.mocked(useAuth).mockReturnValue({
       attemptToSignIn: jest.fn().mockResolvedValue({ isUserComplete: true }),
+      authStatus: 'unauthenticated',
     })
   })
 
-  it('Shows the username and password fields.', () => {
+  it('Disables the submit button and shows a spinner while sign-in is in progress.', async () => {
+    jest.mocked(useAuth).mockReturnValue({
+      attemptToSignIn: jest.fn(() => new Promise(() => {})),
+      authStatus: 'unauthenticated',
+    })
+
+    const user = userEvent.setup()
+    const { getByLabelText, getByRole } = render(<SignIn />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.type(getByLabelText('Username:'), chance.name())
+    await user.type(getByLabelText('Password:'), chance.word())
+    await user.click(getByRole('button', { name: 'Login' }))
+
+    const submit = getByRole('button', { name: 'Signing in' })
+    expect(submit).toHaveAttribute('aria-busy', 'true')
+    expect(submit).toBeDisabled()
+    expect(submit.querySelector('[aria-hidden="true"]')).toBeInTheDocument()
+  })
+
+  it('Shows the username and password fields.', async () => {
     const { getByText } = render(<SignIn />, {
-      wrapper: createAllWrappers(),
+      wrapper: createAllWrappersWithoutAuth(),
     })
 
     expect(getByText('Username:')).toBeInTheDocument()
@@ -40,7 +62,7 @@ describe('Sign in', () => {
   it('Shows a message when username or password is missing.', async () => {
     const user = userEvent.setup()
     const { getByRole, getByText } = render(<SignIn />, {
-      wrapper: createAllWrappers(),
+      wrapper: createAllWrappersWithoutAuth(),
     })
 
     await user.click(getByRole('button', { name: 'Login' }))
@@ -57,11 +79,12 @@ describe('Sign in', () => {
       attemptToSignIn: jest
         .fn()
         .mockRejectedValue(new Error(errorMessage)),
+      authStatus: 'unauthenticated',
     })
 
     const user = userEvent.setup()
     const { getByLabelText, getByRole, findByText } = render(<SignIn />, {
-      wrapper: createAllWrappers(),
+      wrapper: createAllWrappersWithoutAuth(),
     })
 
     await user.type(getByLabelText('Username:'), chance.name())
@@ -76,7 +99,7 @@ describe('Sign in', () => {
     const newPassword = chance.word()
     const user = userEvent.setup()
     const { getByLabelText } = render(<SignIn />, {
-      wrapper: createAllWrappers(),
+      wrapper: createAllWrappersWithoutAuth(),
     })
 
     const userNameInput = getByLabelText('Username:') as HTMLInputElement
@@ -92,13 +115,20 @@ describe('Sign in', () => {
   })
 
   it('Navigates home after a successful sign-in.', async () => {
-    const attemptToSignIn = jest.fn().mockResolvedValue({ isUserComplete: true })
+    let authStatus: 'unauthenticated' | 'authenticated' = 'unauthenticated'
+    const attemptToSignIn = jest.fn().mockImplementation(async () => {
+      authStatus = 'authenticated'
+      return { isUserComplete: true }
+    })
 
-    jest.mocked(useAuth).mockReturnValue({ attemptToSignIn })
+    jest.mocked(useAuth).mockImplementation(() => ({
+      attemptToSignIn,
+      authStatus,
+    }))
 
     const user = userEvent.setup()
     const { getByLabelText, getByRole } = render(<SignIn />, {
-      wrapper: createAllWrappers(),
+      wrapper: createAllWrappersWithoutAuth({ initialEntries: [LOGIN_PATH] }),
     })
 
     await user.type(getByLabelText('Username:'), chance.name())
@@ -107,18 +137,19 @@ describe('Sign in', () => {
 
     await waitFor(() => {
       expect(attemptToSignIn).toHaveBeenCalledTimes(1)
+      expect(mockNavigate).toHaveBeenCalledWith(HOME_PATH, { replace: true })
     })
-    expect(mockNavigate).toHaveBeenCalledWith(HOME_PATH)
   })
 
   it('Shows a message when the user is not valid.', async () => {
     jest.mocked(useAuth).mockReturnValue({
       attemptToSignIn: jest.fn().mockResolvedValue({ isUserComplete: false }),
+      authStatus: 'unauthenticated',
     })
 
     const user = userEvent.setup()
     const { getByLabelText, getByRole, getByText } = render(<SignIn />, {
-      wrapper: createAllWrappers(),
+      wrapper: createAllWrappersWithoutAuth(),
     })
 
     await user.type(getByLabelText('Username:'), chance.name())
@@ -127,6 +158,21 @@ describe('Sign in', () => {
 
     await waitFor(() => {
       expect(getByText('User is invalid.')).toBeInTheDocument()
+    })
+  })
+
+  it('Redirects to home when already authenticated on the login page.', async () => {
+    jest.mocked(useAuth).mockReturnValue({
+      attemptToSignIn: jest.fn(),
+      authStatus: 'authenticated',
+    })
+
+    render(<SignIn />, {
+      wrapper: createAllWrappersWithoutAuth({ initialEntries: [LOGIN_PATH] }),
+    })
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(HOME_PATH, { replace: true })
     })
   })
 })

@@ -4,10 +4,10 @@ import {
   type FormEvent,
   type FunctionComponent,
 } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import type { SignInOutput } from '../../types/auth'
 import { useAuth } from '../../contexts'
-import { HOME_PATH } from '../../constants/paths'
+import { HOME_PATH, LOGIN_PATH } from '../../constants/paths'
 import { AlertGraphic, LogoGraphic } from '../graphics'
 import {
   AlertError,
@@ -18,21 +18,30 @@ import {
   IconAlertError,
   IconLogo,
   SignInHeader,
+  SubmitButton,
+  SubmitButtonSpinner,
   SubmitRow,
 } from './SignIn.styles'
 
 export const SignIn: FunctionComponent = () => {
   const navigate = useNavigate()
-  const { attemptToSignIn } = useAuth()
+  const location = useLocation()
+  const { attemptToSignIn, authStatus } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [pending, setPending] = useState(false)
+  const [isPending, setIsPending] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [forgotPasswordRedirect, setForgotPasswordRedirect] = useState('')
 
   useEffect(() => {
     setForgotPasswordRedirect(window.location.href)
   }, [])
+
+  useEffect(() => {
+    if (authStatus === 'authenticated' && location.pathname === LOGIN_PATH) {
+      navigate(HOME_PATH, { replace: true })
+    }
+  }, [authStatus, location.pathname, navigate])
 
   const onSignIn = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -43,13 +52,11 @@ export const SignIn: FunctionComponent = () => {
       return
     }
 
-    setPending(true)
+    setIsPending(true)
 
     attemptToSignIn({ username, password })
       .then(({ isUserComplete }: SignInOutput) => {
-        if (isUserComplete) {
-          navigate(HOME_PATH)
-        } else {
+        if (!isUserComplete) {
           setErrorMessage('User is invalid.')
         }
       })
@@ -57,7 +64,7 @@ export const SignIn: FunctionComponent = () => {
         setErrorMessage(String(error))
       })
       .finally(() => {
-        setPending(false)
+        setIsPending(false)
       })
   }
 
@@ -75,7 +82,6 @@ export const SignIn: FunctionComponent = () => {
             id={'username'}
             type={'text'}
             name={'username'}
-            aria-label={'username'}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete={'username'}
@@ -87,7 +93,6 @@ export const SignIn: FunctionComponent = () => {
             id={'password'}
             type={'password'}
             name={'password'}
-            aria-label={'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={'current-password'}
@@ -102,7 +107,17 @@ export const SignIn: FunctionComponent = () => {
           </AlertError>
         )}
         <SubmitRow>
-          <input type={'submit'} value={'Login'} disabled={pending} />
+          <SubmitButton
+            disabled={isPending}
+            aria-busy={isPending}
+            aria-label={isPending ? 'Signing in' : undefined}
+          >
+            {isPending ? (
+              <SubmitButtonSpinner aria-hidden={'true'} />
+            ) : (
+              'Login'
+            )}
+          </SubmitButton>
         </SubmitRow>
         <ForgotPasswordLink>
           <a

@@ -14,6 +14,9 @@ const jestGlobals = {
 }
 
 export default [
+  {
+    ignores: ['dist/**', 'coverage/**'],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {

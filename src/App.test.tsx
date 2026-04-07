@@ -1,6 +1,7 @@
 import Chance from 'chance'
 import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { getCurrentUser } from 'aws-amplify/auth'
 import { MemoryRouter } from 'react-router-dom'
 import { App } from './App'
 import { mockList, mockListWithItems } from './testing/mocks/lists'
@@ -9,18 +10,21 @@ import { useLists } from './hooks/useLists'
 
 jest.mock('./hooks/useList')
 jest.mock('./hooks/useLists')
+jest.mock('aws-amplify/auth', () => ({
+  getCurrentUser: jest.fn(),
+  signIn: jest.fn(),
+}))
 
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
 const mockUseLists = jest.mocked(useLists)
 
-const renderApp = (initialRoute = '/') => {
-  return render(
+const renderApp = (initialRoute = '/') =>
+  render(
     <MemoryRouter initialEntries={[initialRoute]}>
       <App />
     </MemoryRouter>,
   )
-}
 
 describe('App', () => {
   const listId = chance.guid()
@@ -43,6 +47,10 @@ describe('App', () => {
   })
 
   beforeEach(() => {
+    jest.mocked(getCurrentUser).mockResolvedValue({
+      username: chance.word(),
+      userId: chance.guid(),
+    })
     mockUseLists.mockReturnValue({
       data: [homeList],
       isLoading: false,
@@ -63,8 +71,11 @@ describe('App', () => {
   })
 
   it('Renders the home page at /.', async () => {
-    const { getByRole, findByRole } = renderApp('/')
-    expect(getByRole('heading', { name: /mix up/i })).toBeInTheDocument()
+    const { findByRole } = renderApp('/')
+
+    expect(
+      await findByRole('heading', { name: /mix up/i }),
+    ).toBeInTheDocument()
     expect(await findByRole('link', { name: listName })).toBeInTheDocument()
   })
 
@@ -77,6 +88,7 @@ describe('App', () => {
     const user = userEvent.setup()
     const { findByRole, findByText } = renderApp('/')
     const link = await findByRole('link', { name: listName })
+
     await user.click(link)
     expect(await findByText(pickItemName)).toBeInTheDocument()
   })
