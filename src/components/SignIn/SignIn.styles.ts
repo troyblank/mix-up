@@ -1,8 +1,14 @@
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
+
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`
 
 export const FormWrap = styled.div`
   width: 100%;
-  max-width: 75%;
+  max-width: 1000px;
   margin: 0 auto;
   min-width: 0;
 
@@ -79,6 +85,26 @@ export const IconAlertError = styled.div`
 export const SubmitRow = styled.div`
   width: 100%;
   min-width: 0;
+`
+
+export const SubmitButton = styled.button.attrs({ type: 'submit' })`
+  && {
+    display: inline-flex;
+    height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+`
+
+export const SubmitButtonSpinner = styled.span`
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ${spin} 0.75s linear infinite;
+  flex-shrink: 0;
 `
 
 export const ForgotPasswordLink = styled.div`

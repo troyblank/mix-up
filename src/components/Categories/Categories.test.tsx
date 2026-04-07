@@ -1,7 +1,7 @@
 import { render, screen, waitForElementToBeRemoved } from '@testing-library/react'
 import { API_URL } from '../../api/graphql'
 import { mockList } from '../../testing/mocks/lists'
-import { createAllWrappers } from '../../testing/wrappers'
+import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
 import { Categories } from './Categories'
 
 describe('Categories', () => {
@@ -22,7 +22,7 @@ describe('Categories', () => {
   })
 
   it('Renders a list of links from the API.', async () => {
-    render(<Categories />, { wrapper: createAllWrappers() })
+    render(<Categories />, { wrapper: createAllWrappersWithoutAuth() })
     for (const list of lists) {
       expect(await screen.findByRole('link', { name: list.name })).toBeInTheDocument()
     }
@@ -36,7 +36,7 @@ describe('Categories', () => {
       json: () => Promise.resolve({ message: 'Server error' }),
     } as unknown as Response)
 
-    render(<Categories />, { wrapper: createAllWrappers() })
+    render(<Categories />, { wrapper: createAllWrappersWithoutAuth() })
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(/failed to load lists/i)
   })
@@ -44,7 +44,7 @@ describe('Categories', () => {
   it('Renders Unknown error when the error is not an Error instance.', async () => {
     jest.mocked(global.fetch).mockImplementationOnce(() => Promise.reject('network failure'))
 
-    render(<Categories />, { wrapper: createAllWrappers() })
+    render(<Categories />, { wrapper: createAllWrappersWithoutAuth() })
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(/Unknown error/)
   })
@@ -58,8 +58,12 @@ describe('Categories', () => {
       } as unknown as Response),
     )
 
-    render(<Categories />, { wrapper: createAllWrappers() })
-    await waitForElementToBeRemoved(() => screen.getByText('Loading lists'))
+    const { getByText } = render(<Categories />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    expect(getByText('Loading lists')).toBeInTheDocument()
+    await waitForElementToBeRemoved(() => getByText('Loading lists'))
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 })

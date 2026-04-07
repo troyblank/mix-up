@@ -1,24 +1,34 @@
 import { render, screen } from '@testing-library/react'
-import { createAllWrappers } from '../../testing/wrappers'
+import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
 import { Loader } from './Loader'
 
 describe('Loader', () => {
-  it('Shows the given text.', () => {
-    render(<Loader text={'Loading lists'} />, { wrapper: createAllWrappers() })
+  it('Shows the given text.', async () => {
+    render(<Loader text={'Loading lists'} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
 
-    expect(screen.getByText('Loading lists')).toBeInTheDocument()
+    expect(await screen.findByText('Loading lists')).toBeInTheDocument()
   })
 
-  it('Marks the region as busy for screen readers.', () => {
-    render(<Loader text={'Please wait'} />, { wrapper: createAllWrappers() })
+  it('Marks the region as busy for screen readers.', async () => {
+    const { container } = render(<Loader text={'Please wait'} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
 
-    expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument()
+    expect(await screen.findByText('Please wait')).toBeInTheDocument()
+    expect(
+      container.querySelector('[aria-busy="true"]'),
+    ).toBeInTheDocument()
   })
 
-  it('Hides the spinner from assistive tech.', () => {
-    render(<Loader text={'Saving'} />, { wrapper: createAllWrappers() })
+  it('Hides the spinner from assistive tech.', async () => {
+    const { container } = render(<Loader text={'Saving'} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
 
-    const spinner = document.querySelector('[aria-hidden="true"]')
+    expect(await screen.findByText('Saving')).toBeInTheDocument()
+    const spinner = container.querySelector('[aria-hidden="true"]')
 
     expect(spinner).toBeInTheDocument()
   })
