@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 
 export const ButtonList = styled.ul`
   list-style: none;
@@ -7,12 +7,12 @@ export const ButtonList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: ${({ theme }) => theme.space.medium};
 `
 
-const buttonStyles = `
+const buttonStyles = css`
   display: block;
-  padding: 0.75rem 1rem;
+  padding: ${({ theme }) => theme.space.medium};
   font-size: 1rem;
   font-family: inherit;
   border: none;
@@ -34,6 +34,6 @@ export const ButtonLink = styled(Link)`
 
   &:focus-visible {
     outline: 2px solid ${({ theme }) => theme.color.accent};
-    outline-offset: 2px;
+    outline-offset: ${({ theme }) => theme.space.extraSmall};
   }
 `

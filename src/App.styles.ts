@@ -1,5 +1,5 @@
 import styled from 'styled-components'
 
 export const AppWrapper = styled.div`
-  padding: 2rem;
+  padding: ${({ theme }) => theme.space.extraLarge};
 `

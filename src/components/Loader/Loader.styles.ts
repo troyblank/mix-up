@@ -11,8 +11,8 @@ export const LoaderWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding: 2rem;
+  gap: ${({ theme }) => theme.space.medium};
+  padding: ${({ theme }) => theme.space.extraLarge};
 `
 
 export const Spinner = styled.div`
