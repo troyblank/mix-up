@@ -18,11 +18,11 @@ export const FormWrap = styled.div`
 `
 
 export const SignInHeader = styled.header`
-  margin: 50px 0;
+  margin: ${({ theme }) => theme.space.maximum} 0;
   text-align: right;
 
   @media (max-width: ${({ theme }) => theme.size.small}) {
-    margin-bottom: 30px;
+    margin-bottom: ${({ theme }) => theme.space.extraLarge};
   }
 `
 
@@ -38,7 +38,7 @@ export const Form = styled.form`
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding-bottom: 2rem;
+  padding-bottom: ${({ theme }) => theme.space.extraLarge};
 `
 
 export const FieldRow = styled.div`
@@ -56,7 +56,7 @@ export const AlertError = styled.div`
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 12px 14px;
+  padding: ${({ theme }) => theme.space.medium};
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background-color: color-mix(
@@ -69,7 +69,7 @@ export const AlertError = styled.div`
   font-size: 0.875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: ${({ theme }) => theme.space.extraSmall};
 `
 
 export const IconAlertError = styled.div`
@@ -77,7 +77,7 @@ export const IconAlertError = styled.div`
   top: 2px;
   width: 15px;
   height: 15px;
-  margin-right: 10px;
+  margin-right: ${({ theme }) => theme.space.small};
   flex-shrink: 0;
   color: ${({ theme }) => theme.color.text};
 `
@@ -90,10 +90,10 @@ export const SubmitRow = styled.div`
 export const SubmitButton = styled.button.attrs({ type: 'submit' })`
   && {
     display: inline-flex;
-    height: 50px;
+    height: ${({ theme }) => theme.space.maximum};
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: ${({ theme }) => theme.space.small};
   }
 `
 

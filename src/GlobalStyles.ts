@@ -1,4 +1,5 @@
 import { createGlobalStyle } from 'styled-components'
+import { spaceCssVarsBlock } from './theme/space'
 
 export const GlobalStyles = createGlobalStyle`
   *,
@@ -8,6 +9,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   :root {
+    ${spaceCssVarsBlock}
     font-size: ${({ theme }) => theme.font.sizeBase};
     font-family: ${({ theme }) => theme.font.family};
     color: ${({ theme }) => theme.color.text};
@@ -23,8 +25,8 @@ export const GlobalStyles = createGlobalStyle`
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    margin: 0 0 20px;
-    padding: 0.75rem 1rem;
+    margin: 0 0 ${({ theme }) => theme.space.large};
+    padding: ${({ theme }) => theme.space.medium};
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     background: ${({ theme }) => theme.color.surface};
@@ -48,9 +50,9 @@ export const GlobalStyles = createGlobalStyle`
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    margin-top: 1.75rem;
-    margin-bottom: 1.75rem;
-    padding: 0.75rem 1rem;
+    margin-top: ${({ theme }) => theme.space.large};
+    margin-bottom: ${({ theme }) => theme.space.large};
+    padding: ${({ theme }) => theme.space.medium};
     border: none;
     border-radius: 6px;
     background: ${({ theme }) => theme.color.accent};

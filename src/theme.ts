@@ -1,3 +1,5 @@
+import { space } from './theme/space'
+
 export const theme = {
   color: {
     bg: '#1d1f27',
@@ -16,6 +18,10 @@ export const theme = {
   size: {
     medium: '768px',
     small: '600px',
+  },
+  space: {
+    ...space,
+    safeBottomNavigation: `calc(${space.maximum} + env(safe-area-inset-bottom, 0px))`,
   },
 } as const
 

@@ -1,12 +1,51 @@
 import type { FunctionComponent } from 'react'
-import { HomePageWrapper, Title } from './HomePage.styles'
-import { Categories } from '../components/Categories'
+import { useState } from 'react'
+import {
+  ActionMenu,
+  Categories,
+  RandomNumberRangeDialog,
+  PlusIcon,
+  ShuffleIcon,
+} from '../components'
+import { PageWrapper, Title } from './page.styles'
+
+const homeMenuActions = [
+  {
+    id: 'add',
+    ariaLabel: 'Add',
+    icon: <PlusIcon />,
+  },
+  {
+    id: 'random-from-range',
+    ariaLabel: 'Random from range',
+    icon: <ShuffleIcon />,
+  },
+]
 
 export const HomePage: FunctionComponent = () => {
+  const [isRandomRangeOpen, setRandomRangeOpen] = useState(false)
+
   return (
-    <HomePageWrapper as={'main'}>
-      <Title as={'h1'}>Mix Up</Title>
+    <PageWrapper>
+      <Title>Mix Up</Title>
       <Categories />
-    </HomePageWrapper>
+      <ActionMenu
+        actions={homeMenuActions}
+        onAction={(actionId) => {
+          switch (actionId) {
+            case 'add':
+              // coming soon
+              break
+            case 'random-from-range':
+              setRandomRangeOpen(true)
+              break
+          }
+        }}
+      />
+      <RandomNumberRangeDialog
+        isOpen={isRandomRangeOpen}
+        onClose={() => setRandomRangeOpen(false)}
+      />
+    </PageWrapper>
   )
 }

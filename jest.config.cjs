@@ -3,6 +3,7 @@ module.exports = {
   coveragePathIgnorePatterns: [
     '<rootDir>/src/testing/',
     '<rootDir>/src/main.tsx',
+    '<rootDir>/src/GlobalStyles.ts',
     '\\.d\\.ts$',
     '\\.styles\\.ts$',
   ],

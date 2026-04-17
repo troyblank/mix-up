@@ -1,13 +1,13 @@
 import styled from 'styled-components'
 
 export const RandomPickWrapper = styled.div`
-  margin-top: 1.5rem;
+  margin-top: ${({ theme }) => theme.space.large};
 `
 
 export const ListTitle = styled.h1`
   font-size: 2rem;
   font-weight: 600;
-  margin: 0 0 1.5rem;
+  margin: 0 0 ${({ theme }) => theme.space.large};
   text-align: center;
   text-transform: uppercase;
   color: ${({ theme }) => theme.color.text};
