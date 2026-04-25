@@ -2,11 +2,30 @@ import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Chance from 'chance'
 import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
+import { randomInclusiveInteger } from '../../utils/utils'
 import { RandomNumberRangeDialog } from './RandomNumberRangeDialog'
 
+jest.mock('../../utils/utils', () => ({
+  ...jest.requireActual<typeof import('../../utils/utils')>('../../utils/utils'),
+  randomInclusiveInteger: jest.fn(),
+}))
+
 const chance = new Chance()
+const mockRandomInclusiveInteger = jest.mocked(randomInclusiveInteger)
 
 describe('Random number range dialog', () => {
+  beforeEach(() => {
+    mockRandomInclusiveInteger.mockImplementation((min, max) =>
+      jest
+        .requireActual<typeof import('../../utils/utils')>('../../utils/utils')
+        .randomInclusiveInteger(min, max),
+    )
+  })
+
+  afterEach(() => {
+    mockRandomInclusiveInteger.mockReset()
+  })
+
   it('Renders nothing when closed.', () => {
     const { container } = render(
       <RandomNumberRangeDialog isOpen={false} onClose={jest.fn()} />,
@@ -110,11 +129,11 @@ describe('Random number range dialog', () => {
 
   it('Shows a random result within the chosen inclusive range.', async () => {
     const user = userEvent.setup()
-    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5)
 
     const min = chance.integer({ min: 0, max: 5 })
     const max = min + chance.integer({ min: 5, max: 20 })
-    const expected = Math.floor(0.5 * (max - min + 1)) + min
+    const expected = chance.integer({ min, max })
+    mockRandomInclusiveInteger.mockReturnValueOnce(expected)
 
     const { getByLabelText, getByRole, findByText } = render(
       <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
@@ -128,7 +147,6 @@ describe('Random number range dialog', () => {
     await user.click(getByRole('button', { name: /^pick$/i }))
 
     expect(await findByText(String(expected))).toBeInTheDocument()
-
-    randomSpy.mockRestore()
+    expect(mockRandomInclusiveInteger).toHaveBeenCalledWith(min, max)
   })
 })

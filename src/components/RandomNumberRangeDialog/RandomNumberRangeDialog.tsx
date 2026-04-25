@@ -1,28 +1,22 @@
 import type { FormEvent, FunctionComponent } from 'react'
 import { useEffect, useId, useState } from 'react'
 
+import { Dialog, DialogTitle } from '../Dialog'
 import {
   Actions,
-  Backdrop,
-  DialogTitle,
   ErrorText,
   Field,
   Input,
   Label,
-  Overlay,
-  Panel,
   PrimaryButton,
   Result,
   SecondaryButton,
 } from './RandomNumberRangeDialog.styles'
+import { randomInclusiveInteger } from '../../utils/utils'
 
 export type RandomNumberRangeDialogProps = {
   isOpen: boolean
   onClose: () => void
-}
-
-function randomInclusiveInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
 export const RandomNumberRangeDialog: FunctionComponent<
@@ -45,19 +39,6 @@ export const RandomNumberRangeDialog: FunctionComponent<
     setError(null)
   }, [isOpen])
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
   const pick = () => {
     const min = Number.parseInt(minInput, 10)
     const max = Number.parseInt(maxInput, 10)
@@ -76,7 +57,7 @@ export const RandomNumberRangeDialog: FunctionComponent<
 
     setError(null)
     setPickGeneration((previous) => previous + 1)
-    setResult(randomInclusiveInt(min, max))
+    setResult(randomInclusiveInteger(min, max))
   }
 
   const onSubmit = (event: FormEvent) => {
@@ -85,53 +66,47 @@ export const RandomNumberRangeDialog: FunctionComponent<
   }
 
   return (
-    <Overlay role={'presentation'}>
-      <Backdrop
-        aria-hidden={true}
-        data-testid={'random-range-backdrop'}
-        onClick={onClose}
-      />
-      <Panel
-        role={'dialog'}
-        aria-modal={'true'}
-        aria-labelledby={titleId}
-      >
-        <DialogTitle id={titleId}>Random number</DialogTitle>
-        <form onSubmit={onSubmit}>
-          <Field>
-            <Label htmlFor={minId}>Minimum</Label>
-            <Input
-              id={minId}
-              type={'number'}
-              inputMode={'numeric'}
-              value={minInput}
-              onChange={(event) => setMinInput(event.target.value)}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor={maxId}>Maximum</Label>
-            <Input
-              id={maxId}
-              type={'number'}
-              inputMode={'numeric'}
-              value={maxInput}
-              onChange={(event) => setMaxInput(event.target.value)}
-            />
-          </Field>
-          {error != null && <ErrorText role={'alert'}>{error}</ErrorText>}
-          {result != null && (
-            <Result key={pickGeneration} aria-live={'polite'}>
-              {result}
-            </Result>
-          )}
-          <Actions>
-            <PrimaryButton type={'submit'}>Pick</PrimaryButton>
-            <SecondaryButton type={'button'} onClick={onClose}>
-              Close
-            </SecondaryButton>
-          </Actions>
-        </form>
-      </Panel>
-    </Overlay>
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabelledBy={titleId}
+      backdropTestId={'random-range-backdrop'}
+    >
+      <DialogTitle id={titleId}>Random number</DialogTitle>
+      <form onSubmit={onSubmit}>
+        <Field>
+          <Label htmlFor={minId}>Minimum</Label>
+          <Input
+            id={minId}
+            type={'number'}
+            inputMode={'numeric'}
+            value={minInput}
+            onChange={(event) => setMinInput(event.target.value)}
+          />
+        </Field>
+        <Field>
+          <Label htmlFor={maxId}>Maximum</Label>
+          <Input
+            id={maxId}
+            type={'number'}
+            inputMode={'numeric'}
+            value={maxInput}
+            onChange={(event) => setMaxInput(event.target.value)}
+          />
+        </Field>
+        {error != null && <ErrorText role={'alert'}>{error}</ErrorText>}
+        {result != null && (
+          <Result key={pickGeneration} aria-live={'polite'}>
+            {result}
+          </Result>
+        )}
+        <Actions>
+          <PrimaryButton type={'submit'}>Pick</PrimaryButton>
+          <SecondaryButton type={'button'} onClick={onClose}>
+            Close
+          </SecondaryButton>
+        </Actions>
+      </form>
+    </Dialog>
   )
 }

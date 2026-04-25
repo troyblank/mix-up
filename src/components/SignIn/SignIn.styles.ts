@@ -1,5 +1,7 @@
 import styled, { keyframes } from 'styled-components'
 
+import { AppButton } from '../AppButton'
+
 const spin = keyframes`
   to {
     transform: rotate(360deg);
@@ -87,13 +89,16 @@ export const SubmitRow = styled.div`
   min-width: 0;
 `
 
-export const SubmitButton = styled.button.attrs({ type: 'submit' })`
+export const SubmitButton = styled(AppButton).attrs({
+  type: 'submit',
+  $variant: 'primary',
+  $layout: 'form',
+})`
   && {
-    display: inline-flex;
-    height: ${({ theme }) => theme.space.maximum};
-    align-items: center;
-    justify-content: center;
-    gap: ${({ theme }) => theme.space.small};
+    &:disabled {
+      cursor: wait;
+      opacity: 0.75;
+    }
   }
 `
 
