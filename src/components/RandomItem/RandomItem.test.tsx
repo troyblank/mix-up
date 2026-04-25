@@ -1,6 +1,7 @@
 import type { ListWithItems } from '../../api/graphql'
 import Chance from 'chance'
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createWrappersWithoutRouter } from '../../testing/wrappers'
 import { mockListWithItems } from '../../testing/mocks/lists'
 import { useList } from '../../hooks/useList'
@@ -109,8 +110,17 @@ describe('RandomItem', () => {
       error: null,
     } as unknown as ReturnType<typeof useList>)
 
-    const { findByText } = renderRandomItem(listId)
+    const { findByText, findByRole } = renderRandomItem(listId)
     expect(await findByText(itemName)).toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^add$/i }),
+    ).toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^refresh choice$/i }),
+    ).toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^delete$/i }),
+    ).toBeInTheDocument()
   })
 
   it('Renders RandomList when list type is list.', () => {
@@ -150,5 +160,97 @@ describe('RandomItem', () => {
 
     const { container } = renderRandomItem(listId)
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('Opening delete shows a confirmation dialog for the random item.', async () => {
+    const user = userEvent.setup()
+    const listId = chance.guid()
+    const listName = chance.sentence({ words: 2 }).replace(/\.$/, '')
+    const itemName = chance.word()
+    const pickList = mockListWithItems({
+      id: listId,
+      name: listName,
+      type: 'pick',
+      items: [{ id: chance.guid(), name: itemName }],
+    })
+
+    mockUseList.mockReturnValue({
+      data: pickList,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useList>)
+
+    const { findByRole, getByRole, getByText, queryByRole } =
+      renderRandomItem(listId)
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    expect(
+      getByRole('dialog', { name: /^delete item\?$/i }),
+    ).toBeInTheDocument()
+    expect(getByText(/Are you sure you want to delete/)).toHaveTextContent(
+      itemName,
+    )
+
+    await user.click(getByRole('button', { name: /^cancel$/i }))
+    expect(
+      queryByRole('dialog', { name: /^delete item\?$/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Uses generic delete copy when the picked item has no name.', async () => {
+    const user = userEvent.setup()
+    const listId = chance.guid()
+    const pickList = {
+      ...mockListWithItems({ id: listId, type: 'pick', items: [] }),
+      items: [{ id: chance.guid() }],
+    } as ListWithItems
+
+    mockUseList.mockReturnValue({
+      data: pickList,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useList>)
+
+    const { findByRole, getByText } = renderRandomItem(listId)
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    expect(
+      getByText('Are you sure you want to delete this item?'),
+    ).toBeInTheDocument()
+  })
+
+  it('Confirming in the delete dialog closes it.', async () => {
+    const user = userEvent.setup()
+    const listId = chance.guid()
+    const pickList = mockListWithItems({
+      id: listId,
+      name: chance.word(),
+      type: 'pick',
+      items: [{ id: chance.guid(), name: chance.word() }],
+    })
+
+    mockUseList.mockReturnValue({
+      data: pickList,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useList>)
+
+    const { findByRole, getByRole, queryByRole } = renderRandomItem(listId)
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete item\?$/i })
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    expect(
+      queryByRole('dialog', { name: /^delete item\?$/i }),
+    ).not.toBeInTheDocument()
   })
 })

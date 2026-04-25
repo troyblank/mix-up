@@ -44,41 +44,6 @@ export const GlobalStyles = createGlobalStyle`
     border-color: ${({ theme }) => theme.color.accent};
   }
 
-  input[type='submit'],
-  button[type='submit'] {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    margin-top: ${({ theme }) => theme.space.large};
-    margin-bottom: ${({ theme }) => theme.space.large};
-    padding: ${({ theme }) => theme.space.medium};
-    border: none;
-    border-radius: 6px;
-    background: ${({ theme }) => theme.color.accent};
-    color: ${({ theme }) => theme.color.bg};
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    box-shadow: none;
-    cursor: pointer;
-    -webkit-appearance: none;
-    transition: background-color 0.15s ease;
-
-    &:hover:not(:disabled) {
-      background: ${({ theme }) => theme.color.accentHover};
-    }
-
-    &:focus-visible {
-      outline: 2px solid ${({ theme }) => theme.color.accent};
-      outline-offset: 2px;
-    }
-
-    &:disabled {
-      opacity: 0.75;
-      cursor: wait;
-    }
-  }
-
   textarea:-webkit-autofill,
   input:not([type='submit']):not([type='button']):not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='hidden']):not([type='reset']):not([type='image']):-webkit-autofill {
     -webkit-box-shadow: inset 0 1px 2px ${({ theme }) => theme.color.shadow},
