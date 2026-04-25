@@ -1,16 +1,22 @@
 import Chance from 'chance'
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { createWrappersWithoutRouter } from '../testing/wrappers'
 import { mockListWithItems } from '../testing/mocks/lists'
 import { useList } from '../hooks/useList'
+import { pickRandom } from '../utils/utils'
 import { ListPage } from './ListPage'
 
 jest.mock('../hooks/useList')
+jest.mock('../utils/utils', () => ({
+  ...jest.requireActual<typeof import('../utils/utils')>('../utils/utils'),
+  pickRandom: jest.fn(),
+}))
 
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
+const mockPickRandom = jest.mocked(pickRandom)
 
 const listIdAlphanumeric = () =>
   chance.string({
@@ -73,10 +79,16 @@ describe('ListPage', () => {
         error: null,
       } as ReturnType<typeof useList>
     })
+    mockPickRandom.mockImplementation((items) =>
+      jest
+        .requireActual<typeof import('../utils/utils')>('../utils/utils')
+        .pickRandom(items),
+    )
   })
 
   afterEach(() => {
     mockUseList.mockReset()
+    mockPickRandom.mockReset()
   })
 
   it('Renders the list page with RandomPick.', async () => {
@@ -108,25 +120,62 @@ describe('ListPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('Runs the bottom menu action handler when a control is activated.', async () => {
+  it('Runs menu actions when users interact with the bottom controls.', async () => {
     const user = userEvent.setup()
+    mockPickRandom
+      .mockReturnValueOnce(listWithItem.items[0])
+      .mockReturnValueOnce(null)
     const { findByRole } = renderWithRoute(`/list/${listIdWithItems}`)
 
     await user.click(await findByRole('button', { name: /^add$/i }))
+    await user.click(await findByRole('button', { name: /^refresh choice$/i }))
   })
 
-  it('Shows add, refresh choice, and delete actions for list-type lists.', async () => {
-    const { findByRole } = renderWithRoute(`/list/${listIdListType}`)
+  it('Selecting delete shows a confirmation dialog that names the list.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole, getByText, queryByRole } =
+      renderWithRoute(`/list/${listIdWithItems}`)
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
 
     expect(
-      await findByRole('button', { name: /^add$/i }),
+      getByRole('dialog', { name: /^delete item\?$/i }),
     ).toBeInTheDocument()
+    expect(getByText(/Are you sure you want to delete/)).toHaveTextContent(
+      listWithItem.items[0].name,
+    )
+
+    await user.click(getByRole('button', { name: /^cancel$/i }))
     expect(
-      await findByRole('button', { name: /^refresh choice$/i }),
-    ).toBeInTheDocument()
+      queryByRole('dialog', { name: /^delete item\?$/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Confirming delete in the dialog closes it.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole, queryByRole } =
+      renderWithRoute(`/list/${listIdWithItems}`)
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete item\?$/i })
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
     expect(
-      await findByRole('button', { name: /^delete$/i }),
-    ).toBeInTheDocument()
+      queryByRole('dialog', { name: /^delete item\?$/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Hides the pick action controls when viewing a list-type list.', () => {
+    const { queryByRole } = renderWithRoute(`/list/${listIdListType}`)
+
+    expect(queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument()
+    expect(
+      queryByRole('button', { name: /^refresh choice$/i }),
+    ).not.toBeInTheDocument()
+    expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
   })
 
   it('Does not show bottom actions while the list is loading.', () => {

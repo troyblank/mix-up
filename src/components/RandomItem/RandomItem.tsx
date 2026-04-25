@@ -1,8 +1,8 @@
-import type { FunctionComponent } from 'react'
+import type { FunctionComponent, ReactNode } from 'react'
 import { ErrorAlert } from '../ErrorAlert'
 import { Loader } from '../Loader'
-import { RandomPick } from '../RandomPick'
 import { RandomList } from '../RandomList'
+import { RandomPick } from '../RandomPick'
 import { useList } from '../../hooks/useList'
 
 type RandomItemProps = {
@@ -17,9 +17,10 @@ export const RandomItem: FunctionComponent<RandomItemProps> = ({ id }) => {
   if (isError)
     return <ErrorAlert message={'Failed to load list'} error={error} />
   if (list == null) return null
+  if (list.type !== 'pick' && list.type !== 'list') return null
 
-  if (list.type === 'pick') return <RandomPick id={id} />
-  if (list.type === 'list') return <RandomList id={id} />
+  const main: ReactNode =
+    list.type === 'pick' ? <RandomPick id={id} /> : <RandomList id={id} />
 
-  return null
+  return <>{main}</>
 }
