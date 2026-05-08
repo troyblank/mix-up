@@ -1,8 +1,13 @@
 import type { ListWithItems } from '../../api/graphql'
-import { render, waitForElementToBeRemoved } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, waitFor, waitForElementToBeRemoved } from '@testing-library/react'
 import Chance from 'chance'
+import { MemoryRouter } from 'react-router-dom'
+import { ThemeProvider } from 'styled-components'
 import { API_URL } from '../../api/graphql'
-import { mockListWithItems } from '../../testing/mocks/lists'
+import { mockListItem, mockListWithItems } from '../../testing/mocks/lists'
+import { theme } from '../../theme'
+import * as randomUtils from '../../utils/random'
 import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
 import { RandomPick } from './RandomPick'
 
@@ -52,6 +57,95 @@ describe('RandomPick', () => {
     )
 
     expect(pickedElement).toBeInTheDocument()
+  })
+
+  it('Keeps the same pick when the list query refetches.', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const pickRandomSpy = jest
+      .spyOn(randomUtils, 'pickRandom')
+      .mockImplementation((items) => items[0] ?? null)
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <MemoryRouter>{children}</MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    )
+
+    const { findByText } = render(<RandomPick id={listId} />, { wrapper })
+
+    const stableName = listWithItems.items[0].name
+    expect(await findByText(stableName)).toBeInTheDocument()
+    expect(pickRandomSpy).toHaveBeenCalledTimes(1)
+
+    await queryClient.invalidateQueries({ queryKey: ['list', listId] })
+
+    await waitFor(() => {
+      expect(jest.mocked(global.fetch).mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+
+    expect(pickRandomSpy).toHaveBeenCalledTimes(1)
+    expect(await findByText(stableName)).toBeInTheDocument()
+
+    pickRandomSpy.mockRestore()
+  })
+
+  it('Keeps the current pick when the list length changes but that item is still present.', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const firstItem = mockListItem({ name: 'StillHere' })
+    const secondItem = mockListItem()
+    const listTwoItems = mockListWithItems({
+      id: listId,
+      items: [firstItem, secondItem],
+    })
+    const listThreeItems = mockListWithItems({
+      id: listId,
+      items: [firstItem, secondItem, mockListItem()],
+    })
+
+    let fetchCount = 0
+    global.fetch = jest.fn(() => {
+      fetchCount += 1
+      const list = fetchCount === 1 ? listTwoItems : listThreeItems
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list } }),
+      } as unknown as Response)
+    })
+
+    const pickRandomSpy = jest
+      .spyOn(randomUtils, 'pickRandom')
+      .mockImplementation((items) => items[0] ?? null)
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <MemoryRouter>{children}</MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    )
+
+    const { findByText } = render(<RandomPick id={listId} />, { wrapper })
+
+    expect(await findByText('StillHere')).toBeInTheDocument()
+    expect(pickRandomSpy).toHaveBeenCalledTimes(1)
+
+    await queryClient.invalidateQueries({ queryKey: ['list', listId] })
+
+    await waitFor(() => {
+      expect(fetchCount).toBeGreaterThanOrEqual(2)
+    })
+
+    expect(pickRandomSpy).toHaveBeenCalledTimes(1)
+    expect(await findByText('StillHere')).toBeInTheDocument()
+
+    pickRandomSpy.mockRestore()
   })
 
   it('Shows error when API fails.', async () => {
