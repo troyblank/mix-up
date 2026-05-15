@@ -1,12 +1,24 @@
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
+
+const dealCardIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.92)
+      rotate(var(--deal-from-rotate, -2deg));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+`
 
 export const RandomPickWrapper = styled.div`
   margin-top: ${({ theme }) => theme.space.large};
 `
 
 export const ListTitle = styled.h1`
-  font-size: 2rem;
-  font-weight: 600;
+  font-size: ${({ theme }) => theme.font.sizeScreenLarge};
+  font-weight: ${({ theme }) => theme.font.weightSemibold};
   margin: 0 0 ${({ theme }) => theme.space.large};
   text-align: center;
   text-transform: uppercase;
@@ -15,8 +27,47 @@ export const ListTitle = styled.h1`
 
 export const PickedItem = styled.p`
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: ${({ theme }) => theme.font.sizeMedium};
+  font-weight: ${({ theme }) => theme.font.weightSemibold};
   text-align: center;
   color: ${({ theme }) => theme.color.text};
+`
+
+export const PickedItemDealing = styled(PickedItem)`
+  --deal-from-rotate: -2.5deg;
+  animation: ${dealCardIn} 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+`
+
+export const ShuffledList = styled.ol`
+  padding: 0;
+  list-style-position: inside;
+`
+
+export const ShuffledListItem = styled.li`
+  margin: ${({ theme }) => theme.space.small} 0;
+  font-size: ${({ theme }) => theme.font.sizeMedium};
+  font-weight: ${({ theme }) => theme.font.weightSemibold};
+  text-align: center;
+  color: ${({ theme }) => theme.color.text};
+`
+
+export const ShuffledListItemDealing = styled(ShuffledListItem)<{
+  $dealIndex: number
+}>`
+  --deal-from-rotate: ${({ $dealIndex }) =>
+    $dealIndex % 2 === 0 ? '-2.5deg' : '2deg'};
+  animation: ${dealCardIn} 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation-delay: ${({ $dealIndex }) => $dealIndex * 55}ms;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 `

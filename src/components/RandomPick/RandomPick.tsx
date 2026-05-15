@@ -8,7 +8,11 @@ import { ErrorAlert } from '../ErrorAlert'
 import { Loader } from '../Loader'
 import { useList } from '../../hooks/useList'
 import { pickRandom } from '../../utils/random'
-import { RandomPickWrapper, ListTitle, PickedItem } from './RandomPick.styles'
+import {
+  RandomPickWrapper,
+  ListTitle,
+  PickedItemDealing,
+} from './RandomPick.styles'
 
 type RandomPickProps = {
   id: string | undefined
@@ -17,6 +21,7 @@ type RandomPickProps = {
 export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   const { data: list, isLoading, isError, error } = useList(id)
   const [picked, setPicked] = useState<string | null>(null)
+  const [dealCycle, setDealCycle] = useState(0)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const menuActions = useMemo(
@@ -46,6 +51,7 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
       return
     }
 
+    let shouldAnimateDeal = false
     setPicked((current) => {
       const stillInList =
         current != null &&
@@ -53,10 +59,21 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
       if (stillInList) {
         return current
       }
+      shouldAnimateDeal = true
       const item = pickRandom(list.items)
       return item?.name ?? null
     })
-  }, [list?.id, list?.items?.length])
+    if (shouldAnimateDeal) {
+      setDealCycle((c) => c + 1)
+    }
+  }, [
+    list?.id,
+    list?.items?.length,
+    (list?.items ?? [])
+      .map((item) => item.id)
+      .sort()
+      .join('|'),
+  ])
 
   const onMenuAction = (actionId: string) => {
     if (actionId === 'delete') {
@@ -65,6 +82,7 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
     }
 
     if (actionId === 'refresh-choice' && list?.items?.length) {
+      setDealCycle((c) => c + 1)
       const item = pickRandom(list.items)
       setPicked(item?.name ?? null)
     }
@@ -93,7 +111,7 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
     <>
       <RandomPickWrapper>
         <ListTitle>{list.name}</ListTitle>
-        <PickedItem>{picked}</PickedItem>
+        <PickedItemDealing key={dealCycle}>{picked}</PickedItemDealing>
       </RandomPickWrapper>
       <ActionMenu actions={menuActions} onAction={onMenuAction} />
       <ConfirmDialog

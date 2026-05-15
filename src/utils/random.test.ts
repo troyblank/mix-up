@@ -1,9 +1,9 @@
 import Chance from 'chance'
-import { pickRandom, randomInclusiveInteger } from './random'
+import { pickRandom, randomInclusiveInteger, shuffleArray } from './random'
 
 const chance = new Chance()
 
-describe('pickRandom', () => {
+describe('Pick Random Utility', () => {
   it('Returns null when items array is empty.', () => {
     expect(pickRandom([])).toBeNull()
   })
@@ -13,6 +13,20 @@ describe('pickRandom', () => {
     const randomlyPickedItem = pickRandom(items)
 
     expect(items).toContain(randomlyPickedItem)
+  })
+})
+
+describe('Shuffle Array Utility', () => {
+  it('Returns an empty array when the input is empty.', () => {
+    expect(shuffleArray([])).toEqual([])
+  })
+
+  it('Returns a permutation of the input with the same length.', () => {
+    const items = chance.unique(chance.word, 6)
+    const shuffled = shuffleArray(items)
+
+    expect(shuffled).toHaveLength(items.length)
+    expect([...shuffled].sort()).toEqual([...items].sort())
   })
 })
 
