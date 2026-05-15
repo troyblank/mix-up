@@ -4,6 +4,12 @@ import { useEffect, useId, useState } from 'react'
 import { PrimaryButton, SecondaryButton } from '../AppButton'
 import { Actions, Dialog, DialogTitle } from '../Dialog'
 import {
+  CheckboxControl,
+  CheckboxField,
+  CheckboxInput,
+  CheckboxLabel,
+  CheckboxText,
+  Divider,
   ErrorText,
   Field,
   Input,
@@ -11,6 +17,50 @@ import {
   Result,
 } from './RandomNumberRangeDialog.styles'
 import { randomInclusiveInteger } from '../../utils/random'
+
+const STORAGE_MIN_KEY = 'mix-up.random-number-range.min'
+const STORAGE_MAX_KEY = 'mix-up.random-number-range.max'
+const STORAGE_REDUCE_MAX_KEY = 'mix-up.random-number-range.reduce-max-after-pick'
+const DEFAULT_MIN = '1'
+const DEFAULT_MAX = '10'
+
+const readStoredMinMax = (): { min: string; max: string } => {
+  try {
+    const min = window.localStorage.getItem(STORAGE_MIN_KEY)
+    const max = window.localStorage.getItem(STORAGE_MAX_KEY)
+    return {
+      min: min ?? DEFAULT_MIN,
+      max: max ?? DEFAULT_MAX,
+    }
+  } catch {
+    return { min: DEFAULT_MIN, max: DEFAULT_MAX }
+  }
+}
+
+const writeStoredMinMax = (min: string, max: string) => {
+  try {
+    window.localStorage.setItem(STORAGE_MIN_KEY, min)
+    window.localStorage.setItem(STORAGE_MAX_KEY, max)
+  } catch {
+    // Ignore issues.
+  }
+}
+
+const readStoredReduceMaxAfterPick = (): boolean => {
+  try {
+    return window.localStorage.getItem(STORAGE_REDUCE_MAX_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+const writeStoredReduceMaxAfterPick = (value: boolean) => {
+  try {
+    window.localStorage.setItem(STORAGE_REDUCE_MAX_KEY, value ? 'true' : 'false')
+  } catch {
+    // Ignore issues.
+  }
+}
 
 export type RandomNumberRangeDialogProps = {
   isOpen: boolean
@@ -23,11 +73,23 @@ export const RandomNumberRangeDialog: FunctionComponent<
   const titleId = useId()
   const minId = useId()
   const maxId = useId()
-  const [minInput, setMinInput] = useState('1')
-  const [maxInput, setMaxInput] = useState('10')
+  const reduceMaxId = useId()
+  const [{ min: minInput, max: maxInput }, setRangeInputs] =
+    useState(readStoredMinMax)
+  const [reduceMaxAfterPick, setReduceMaxAfterPick] = useState(
+    readStoredReduceMaxAfterPick,
+  )
   const [result, setResult] = useState<number | null>(null)
   const [pickGeneration, setPickGeneration] = useState(0)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    writeStoredMinMax(minInput, maxInput)
+  }, [minInput, maxInput])
+
+  useEffect(() => {
+    writeStoredReduceMaxAfterPick(reduceMaxAfterPick)
+  }, [reduceMaxAfterPick])
 
   useEffect(() => {
     if (!isOpen) return
@@ -56,6 +118,12 @@ export const RandomNumberRangeDialog: FunctionComponent<
     setError(null)
     setPickGeneration((previous) => previous + 1)
     setResult(randomInclusiveInteger(min, max))
+    if (reduceMaxAfterPick && max > 1) {
+      setRangeInputs((previous) => ({
+        ...previous,
+        max: String(max - 1),
+      }))
+    }
   }
 
   const onSubmit = (event: FormEvent) => {
@@ -79,7 +147,12 @@ export const RandomNumberRangeDialog: FunctionComponent<
             type={'number'}
             inputMode={'numeric'}
             value={minInput}
-            onChange={(event) => setMinInput(event.target.value)}
+            onChange={(event) =>
+              setRangeInputs((previous) => ({
+                ...previous,
+                min: event.target.value,
+              }))
+            }
           />
         </Field>
         <Field>
@@ -89,9 +162,29 @@ export const RandomNumberRangeDialog: FunctionComponent<
             type={'number'}
             inputMode={'numeric'}
             value={maxInput}
-            onChange={(event) => setMaxInput(event.target.value)}
+            onChange={(event) =>
+              setRangeInputs((previous) => ({
+                ...previous,
+                max: event.target.value,
+              }))
+            }
           />
         </Field>
+        <CheckboxField>
+          <CheckboxLabel htmlFor={reduceMaxId}>
+            <CheckboxControl>
+              <CheckboxInput
+                id={reduceMaxId}
+                checked={reduceMaxAfterPick}
+                onChange={(event) =>
+                  setReduceMaxAfterPick(event.target.checked)
+                }
+              />
+            </CheckboxControl>
+            <CheckboxText>Remove selected number.</CheckboxText>
+          </CheckboxLabel>
+        </CheckboxField>
+        <Divider aria-hidden={true} />
         {error != null && <ErrorText role={'alert'}>{error}</ErrorText>}
         {result != null && (
           <Result key={pickGeneration} aria-live={'polite'}>
