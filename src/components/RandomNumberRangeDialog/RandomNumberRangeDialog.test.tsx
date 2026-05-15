@@ -15,6 +15,7 @@ const mockRandomInclusiveInteger = jest.mocked(randomInclusiveInteger)
 
 describe('Random number range dialog', () => {
   beforeEach(() => {
+    localStorage.clear()
     mockRandomInclusiveInteger.mockImplementation((min, max) =>
       jest
         .requireActual<typeof import('../../utils/random')>('../../utils/random')
@@ -35,6 +36,56 @@ describe('Random number range dialog', () => {
     expect(container.firstChild).toBeNull()
   })
 
+  it('Uses default minimum and maximum when local storage read fails.', () => {
+    const getItem = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+
+    const { getByLabelText } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    expect(getByLabelText(/^minimum$/i)).toHaveValue(1)
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(10)
+    getItem.mockRestore()
+  })
+
+  it('Does not break the dialog when local storage write fails.', async () => {
+    const user = userEvent.setup()
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+
+    const { getByLabelText, getByRole, findByText } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.clear(getByLabelText(/^minimum$/i))
+    await user.type(getByLabelText(/^minimum$/i), '2')
+    await user.clear(getByLabelText(/^maximum$/i))
+    await user.type(getByLabelText(/^maximum$/i), '4')
+    mockRandomInclusiveInteger.mockReturnValueOnce(3)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+
+    expect(await findByText('3')).toBeInTheDocument()
+    setItem.mockRestore()
+  })
+
+  it('Restores minimum and maximum from local storage when the dialog is opened.', () => {
+    localStorage.setItem('mix-up.random-number-range.min', '3')
+    localStorage.setItem('mix-up.random-number-range.max', '12')
+
+    const { getByLabelText } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    expect(getByLabelText(/^minimum$/i)).toHaveValue(3)
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(12)
+  })
+
   it('Shows min and max fields and pick control when open.', () => {
     const { getByLabelText, getByRole } = render(
       <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
@@ -44,6 +95,11 @@ describe('Random number range dialog', () => {
     expect(getByRole('dialog', { name: 'Random number' })).toBeInTheDocument()
     expect(getByLabelText(/^minimum$/i)).toBeInTheDocument()
     expect(getByLabelText(/^maximum$/i)).toBeInTheDocument()
+    expect(
+      getByRole('checkbox', {
+        name: /Remove selected number./i,
+      }),
+    ).toBeInTheDocument()
     expect(
       getByRole('button', { name: /^pick$/i }),
     ).toBeInTheDocument()
@@ -148,5 +204,129 @@ describe('Random number range dialog', () => {
 
     expect(await findByText(String(expected))).toBeInTheDocument()
     expect(mockRandomInclusiveInteger).toHaveBeenCalledWith(min, max)
+  })
+
+  it('When reduce-after-pick is off, leaves the maximum unchanged after a pick.', async () => {
+    const user = userEvent.setup()
+
+    const { getByLabelText, getByRole } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.clear(getByLabelText(/^maximum$/i))
+    await user.type(getByLabelText(/^maximum$/i), '10')
+    mockRandomInclusiveInteger.mockReturnValueOnce(4)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(10)
+  })
+
+  it('When reduce-after-pick is on, lowers the maximum by 1 after each successful pick.', async () => {
+    const user = userEvent.setup()
+
+    const { getByLabelText, getByRole } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.clear(getByLabelText(/^minimum$/i))
+    await user.type(getByLabelText(/^minimum$/i), '1')
+    await user.clear(getByLabelText(/^maximum$/i))
+    await user.type(getByLabelText(/^maximum$/i), '10')
+    await user.click(
+      getByRole('checkbox', {
+        name: /Remove selected number./i,
+      }),
+    )
+
+    mockRandomInclusiveInteger.mockReturnValueOnce(7)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(9)
+    expect(mockRandomInclusiveInteger).toHaveBeenLastCalledWith(1, 10)
+
+    mockRandomInclusiveInteger.mockReturnValueOnce(3)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(8)
+    expect(mockRandomInclusiveInteger).toHaveBeenLastCalledWith(1, 9)
+  })
+
+  it('When reduce-after-pick is on and maximum is 1, keeps picking in a 1-wide range without lowering maximum.', async () => {
+    const user = userEvent.setup()
+
+    const { getByLabelText, getByRole, findByText } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.clear(getByLabelText(/^minimum$/i))
+    await user.type(getByLabelText(/^minimum$/i), '1')
+    await user.clear(getByLabelText(/^maximum$/i))
+    await user.type(getByLabelText(/^maximum$/i), '1')
+    await user.click(
+      getByRole('checkbox', {
+        name: /Remove selected number./i,
+      }),
+    )
+
+    mockRandomInclusiveInteger.mockReturnValueOnce(1)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+    expect(await findByText('1')).toBeInTheDocument()
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(1)
+    expect(mockRandomInclusiveInteger).toHaveBeenLastCalledWith(1, 1)
+
+    mockRandomInclusiveInteger.mockReturnValueOnce(1)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(1)
+    expect(mockRandomInclusiveInteger).toHaveBeenLastCalledWith(1, 1)
+  })
+
+  it('When reduce-after-pick is on, stops reducing once maximum reaches 1 after shrinking from a larger range.', async () => {
+    const user = userEvent.setup()
+
+    const { getByLabelText, getByRole } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.clear(getByLabelText(/^minimum$/i))
+    await user.type(getByLabelText(/^minimum$/i), '1')
+    await user.clear(getByLabelText(/^maximum$/i))
+    await user.type(getByLabelText(/^maximum$/i), '2')
+    await user.click(
+      getByRole('checkbox', {
+        name: /Remove selected number./i,
+      }),
+    )
+
+    mockRandomInclusiveInteger.mockReturnValueOnce(2)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(1)
+    expect(mockRandomInclusiveInteger).toHaveBeenLastCalledWith(1, 2)
+
+    mockRandomInclusiveInteger.mockReturnValueOnce(1)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(1)
+    expect(mockRandomInclusiveInteger).toHaveBeenLastCalledWith(1, 1)
+
+    mockRandomInclusiveInteger.mockReturnValueOnce(1)
+    await user.click(getByRole('button', { name: /^pick$/i }))
+    expect(getByLabelText(/^maximum$/i)).toHaveValue(1)
+    expect(mockRandomInclusiveInteger).toHaveBeenLastCalledWith(1, 1)
+  })
+
+  it('Restores reduce-after-pick preference from local storage when the dialog is opened.', () => {
+    localStorage.setItem('mix-up.random-number-range.reduce-max-after-pick', 'true')
+
+    const { getByRole } = render(
+      <RandomNumberRangeDialog isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    expect(
+      getByRole('checkbox', {
+        name: /Remove selected number./i,
+      }),
+    ).toBeChecked()
   })
 })
