@@ -5,18 +5,20 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { createWrappersWithoutRouter } from '../testing/wrappers'
 import { mockListWithItems } from '../testing/mocks/lists'
 import { useList } from '../hooks/useList'
-import { pickRandom } from '../utils/random'
+import { pickRandom, shuffleArray } from '../utils/random'
 import { ListPage } from './ListPage'
 
 jest.mock('../hooks/useList')
 jest.mock('../utils/random', () => ({
   ...jest.requireActual<typeof import('../utils/random')>('../utils/random'),
   pickRandom: jest.fn(),
+  shuffleArray: jest.fn(),
 }))
 
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
 const mockPickRandom = jest.mocked(pickRandom)
+const mockShuffleArray = jest.mocked(shuffleArray)
 
 const listIdAlphanumeric = () =>
   chance.string({
@@ -84,11 +86,17 @@ describe('ListPage', () => {
         .requireActual<typeof import('../utils/random')>('../utils/random')
         .pickRandom(items),
     )
+    mockShuffleArray.mockImplementation((items) =>
+      jest
+        .requireActual<typeof import('../utils/random')>('../utils/random')
+        .shuffleArray(items),
+    )
   })
 
   afterEach(() => {
     mockUseList.mockReset()
     mockPickRandom.mockReset()
+    mockShuffleArray.mockReset()
   })
 
   it('Renders the list page with RandomPick.', async () => {
@@ -101,12 +109,15 @@ describe('ListPage', () => {
     expect(await findByText(/this list has no items/i)).toBeInTheDocument()
   })
 
-  it('Renders RandomList when list type is list.', () => {
-    const { queryByRole } = renderWithRoute(`/list/${listIdListType}`)
-    expect(queryByRole('heading')).not.toBeInTheDocument()
+  it('Renders RandomList when list type is list.', async () => {
+    const { findByRole, findByText } = renderWithRoute(`/list/${listIdListType}`)
+    expect(
+      await findByRole('heading', { name: listTypeList.name }),
+    ).toBeInTheDocument()
+    expect(await findByText(listTypeList.items[0].name)).toBeInTheDocument()
   })
 
-  it('Shows add, refresh choice, and delete actions fixed at the bottom for pick and list types.', async () => {
+  it('Shows add, refresh choice, and delete actions fixed at the bottom for pick lists.', async () => {
     const { findByRole } = renderWithRoute(`/list/${listIdWithItems}`)
 
     expect(
@@ -120,7 +131,19 @@ describe('ListPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('Runs menu actions when users interact with the bottom controls.', async () => {
+  it('Shows only refresh choice for list-type lists.', async () => {
+    const { findByRole, queryByRole } = renderWithRoute(
+      `/list/${listIdListType}`,
+    )
+
+    expect(
+      await findByRole('button', { name: /^refresh choice$/i }),
+    ).toBeInTheDocument()
+    expect(queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument()
+    expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+  })
+
+  it('Runs menu actions when users interact with the bottom controls on a pick list.', async () => {
     const user = userEvent.setup()
     mockPickRandom
       .mockReturnValueOnce(listWithItem.items[0])
@@ -133,6 +156,17 @@ describe('ListPage', () => {
     expect(mockPickRandom).toHaveBeenCalledTimes(2)
     expect(mockPickRandom).toHaveBeenNthCalledWith(1, listWithItem.items)
     expect(mockPickRandom).toHaveBeenNthCalledWith(2, listWithItem.items)
+  })
+
+  it('Reshuffles when refresh choice is used on a list-type list.', async () => {
+    const user = userEvent.setup()
+    const { findByRole } = renderWithRoute(`/list/${listIdListType}`)
+    await findByRole('heading', { name: listTypeList.name })
+
+    const callsBefore = mockShuffleArray.mock.calls.length
+    await user.click(await findByRole('button', { name: /^refresh choice$/i }))
+
+    expect(mockShuffleArray.mock.calls.length).toBeGreaterThan(callsBefore)
   })
 
   it('Selecting delete shows a confirmation dialog that names the list.', async () => {
@@ -170,16 +204,6 @@ describe('ListPage', () => {
     expect(
       queryByRole('dialog', { name: /^delete item\?$/i }),
     ).not.toBeInTheDocument()
-  })
-
-  it('Hides the pick action controls when viewing a list-type list.', () => {
-    const { queryByRole } = renderWithRoute(`/list/${listIdListType}`)
-
-    expect(queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument()
-    expect(
-      queryByRole('button', { name: /^refresh choice$/i }),
-    ).not.toBeInTheDocument()
-    expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
   })
 
   it('Does not show bottom actions while the list is loading.', () => {

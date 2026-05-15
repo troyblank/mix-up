@@ -14,6 +14,9 @@ export const theme = {
   font: {
     sizeBase: '16px',
     family: '"Josefin Sans", sans-serif',
+    sizeScreenLarge: '2rem',
+    sizeMedium: '1.25rem',
+    weightSemibold: 600,
   },
   size: {
     medium: '768px',

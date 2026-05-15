@@ -123,13 +123,14 @@ describe('RandomItem', () => {
     ).toBeInTheDocument()
   })
 
-  it('Renders RandomList when list type is list.', () => {
+  it('Renders RandomList when list type is list.', async () => {
     const listId = chance.guid()
+    const itemName = chance.word()
     const listList = mockListWithItems({
       id: listId,
       name: chance.sentence({ words: 2 }).replace(/\.$/, ''),
       type: 'list',
-      items: [{ id: chance.guid(), name: chance.word() }],
+      items: [{ id: chance.guid(), name: itemName }],
     })
 
     mockUseList.mockReturnValue({
@@ -139,9 +140,19 @@ describe('RandomItem', () => {
       error: null,
     } as unknown as ReturnType<typeof useList>)
 
-    const { queryByText, queryByRole } = renderRandomItem(listId)
+    const { findByText, findByRole, queryByText, queryByRole } =
+      renderRandomItem(listId)
     expect(queryByText('Loading list')).not.toBeInTheDocument()
     expect(queryByRole('alert')).not.toBeInTheDocument()
+    expect(
+      await findByRole('heading', { name: listList.name }),
+    ).toBeInTheDocument()
+    expect(await findByText(itemName)).toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^refresh choice$/i }),
+    ).toBeInTheDocument()
+    expect(queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument()
+    expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
   })
 
   it('Returns null when list type is neither pick nor list.', () => {

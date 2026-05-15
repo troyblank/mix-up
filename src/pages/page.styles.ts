@@ -6,8 +6,8 @@ export const PageWrapper = styled.main`
 `
 
 export const Title = styled.h1`
-  font-size: 2rem;
-  font-weight: 600;
+  font-size: ${({ theme }) => theme.font.sizeScreenLarge};
+  font-weight: ${({ theme }) => theme.font.weightSemibold};
   margin: 0 0 ${({ theme }) => theme.space.large};
   text-align: center;
   text-transform: uppercase;
