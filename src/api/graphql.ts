@@ -1,6 +1,6 @@
-import { getAndValidateResponseData } from '../utils/apiCommunication'
+import { postGraphql } from './graphqlRequest'
 
-export const API_URL = 'https://mix-up-api.troyblank.com/graphql'
+export { API_URL } from './graphqlConfig'
 
 export type ListType = 'pick' | 'list'
 
@@ -42,6 +42,16 @@ export type CreateListResponse = {
   }
 }
 
+export type DeleteListItemInput = {
+  itemId: string
+}
+
+export type DeleteListItemResponse = {
+  data: {
+    deleteListItem: boolean
+  }
+}
+
 const LISTS_QUERY = `
   query Lists {
     lists {
@@ -52,13 +62,8 @@ const LISTS_QUERY = `
 `
 
 export const fetchLists = async (): Promise<List[]> => {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: LISTS_QUERY }),
-  })
-  const { data } = await getAndValidateResponseData<ListsResponse>(
-    res,
+  const data = await postGraphql<ListsResponse>(
+    { query: LISTS_QUERY },
     'Failed to load lists',
   )
   if (data?.data?.lists == null) {
@@ -84,13 +89,8 @@ const LIST_QUERY = `
 export const fetchList = async (
   id: string,
 ): Promise<ListWithItems | null> => {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: LIST_QUERY, variables: { id } }),
-  })
-  const { data } = await getAndValidateResponseData<ListResponse>(
-    res,
+  const data = await postGraphql<ListResponse>(
+    { query: LIST_QUERY, variables: { id } },
     'Failed to load list',
   )
   return data?.data?.list ?? null
@@ -109,20 +109,39 @@ const CREATE_LIST_MUTATION = `
 export const createList = async (
   input: CreateListInput,
 ): Promise<Pick<List, 'id' | 'name' | 'type'>> => {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  const data = await postGraphql<CreateListResponse>(
+    {
       query: CREATE_LIST_MUTATION,
       variables: { input },
-    }),
-  })
-  const { data } = await getAndValidateResponseData<CreateListResponse>(
-    res,
+    },
     'Failed to create list',
+    { requireAuth: true },
   )
   if (data?.data?.createList == null) {
     throw new Error('Invalid create list response')
   }
   return data.data.createList
+}
+
+const DELETE_LIST_ITEM_MUTATION = `
+  mutation DeleteListItem($input: DeleteListItemInput!) {
+    deleteListItem(input: $input)
+  }
+`
+
+export const deleteListItem = async (
+  input: DeleteListItemInput,
+): Promise<boolean> => {
+  const data = await postGraphql<DeleteListItemResponse>(
+    {
+      query: DELETE_LIST_ITEM_MUTATION,
+      variables: { input },
+    },
+    'Failed to delete item',
+    { requireAuth: true },
+  )
+  if (data?.data?.deleteListItem == null) {
+    throw new Error('Invalid delete list item response')
+  }
+  return data.data.deleteListItem
 }

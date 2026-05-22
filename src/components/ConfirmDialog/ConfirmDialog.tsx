@@ -1,9 +1,13 @@
 import type { FunctionComponent, ReactNode } from 'react'
 import { useId } from 'react'
 
-import { DangerButton, SecondaryButton } from '../AppButton'
+import { SecondaryButton } from '../AppButton'
 import { Actions, Dialog, DialogTitle } from '../Dialog'
-import { Message } from './ConfirmDialog.styles'
+import {
+  ConfirmButtonSpinner,
+  ConfirmDangerButton,
+  Message,
+} from './ConfirmDialog.styles'
 
 export type ConfirmDialogProps = {
   isOpen: boolean
@@ -11,6 +15,8 @@ export type ConfirmDialogProps = {
   message: ReactNode
   onClose: () => void
   onConfirm: () => void
+  isConfirmPending?: boolean
+  closeOnConfirm?: boolean
 }
 
 export const ConfirmDialog: FunctionComponent<ConfirmDialogProps> = ({
@@ -19,31 +25,49 @@ export const ConfirmDialog: FunctionComponent<ConfirmDialogProps> = ({
   message,
   onClose,
   onConfirm,
+  isConfirmPending = false,
+  closeOnConfirm = true,
 }) => {
   const titleId = useId()
+
+  const handleClose = () => {
+    if (!isConfirmPending) {
+      onClose()
+    }
+  }
 
   return (
     <Dialog
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       ariaLabelledBy={titleId}
       backdropTestId={'confirm-dialog-backdrop'}
     >
       <DialogTitle id={titleId}>{title}</DialogTitle>
       <Message>{message}</Message>
       <Actions>
-        <DangerButton
+        <ConfirmDangerButton
           type={'button'}
+          disabled={isConfirmPending}
+          aria-busy={isConfirmPending}
+          aria-label={isConfirmPending ? 'Deleting' : undefined}
           onClick={() => {
             onConfirm()
-            onClose()
+            if (closeOnConfirm && !isConfirmPending) {
+              onClose()
+            }
           }}
         >
-          Confirm
-        </DangerButton>
+          {isConfirmPending ? (
+            <ConfirmButtonSpinner aria-hidden={'true'} />
+          ) : (
+            'Confirm'
+          )}
+        </ConfirmDangerButton>
         <SecondaryButton
           type={'button'}
-          onClick={onClose}
+          disabled={isConfirmPending}
+          onClick={handleClose}
         >
           Cancel
         </SecondaryButton>

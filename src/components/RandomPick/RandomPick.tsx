@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../ConfirmDialog'
 import { DeleteIcon, PlusIcon, RefreshIcon } from '../icons'
 import { ErrorAlert } from '../ErrorAlert'
 import { Loader } from '../Loader'
+import { useDeleteListItem } from '../../hooks/useDeleteListItem'
 import { useList } from '../../hooks/useList'
 import { pickRandom } from '../../utils/random'
 import {
@@ -21,6 +22,7 @@ type RandomPickProps = {
 
 export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   const { data: list, isLoading, isError, error } = useList(id)
+  const deleteListItemMutation = useDeleteListItem(id)
   const [picked, setPicked] = useState<string | null>(null)
   const [dealCycle, setDealCycle] = useState(0)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -100,6 +102,7 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
           id={deleteItemSelectId}
           aria-label={'Item to delete'}
           value={deleteTargetId}
+          disabled={deleteListItemMutation.isPending}
           onChange={(event) => setDeleteTargetId(event.target.value)}
         >
           {list.items.map((item) => (
@@ -133,8 +136,20 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
         isOpen={isDeleteDialogOpen}
         title={'Delete item?'}
         message={deleteConfirmMessage}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={() => setIsDeleteDialogOpen(false)}
+        isConfirmPending={deleteListItemMutation.isPending}
+        closeOnConfirm={false}
+        onClose={() => {
+          if (!deleteListItemMutation.isPending) {
+            setIsDeleteDialogOpen(false)
+          }
+        }}
+        onConfirm={() => {
+          if (deleteTargetId != null) {
+            deleteListItemMutation.mutate(deleteTargetId, {
+              onSuccess: () => setIsDeleteDialogOpen(false),
+            })
+          }
+        }}
       />
     </>
   )

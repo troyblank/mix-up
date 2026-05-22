@@ -49,6 +49,26 @@ describe('Confirm dialog', () => {
     ).toBeInTheDocument()
   })
 
+  it('Shows a pending confirm button and disables actions while deleting.', () => {
+    const { getByRole } = render(
+      <ConfirmDialog
+        isOpen={true}
+        title={'Delete item?'}
+        message={'Message'}
+        onClose={jest.fn()}
+        onConfirm={jest.fn()}
+        isConfirmPending={true}
+      />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    const confirm = getByRole('button', { name: /^deleting$/i })
+    expect(confirm).toHaveAttribute('aria-busy', 'true')
+    expect(confirm).toBeDisabled()
+    expect(confirm.querySelector('[aria-hidden="true"]')).toBeInTheDocument()
+    expect(getByRole('button', { name: /^cancel$/i })).toBeDisabled()
+  })
+
   it('When the user confirms, notifies once and closes.', async () => {
     const user = userEvent.setup()
     const handleClose = jest.fn()
@@ -151,6 +171,28 @@ describe('Confirm dialog', () => {
     await user.click(getByTestId('confirm-dialog-backdrop'))
 
     expect(handleClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('Does not close while delete is pending.', async () => {
+    const user = userEvent.setup()
+    const handleClose = jest.fn()
+
+    const { getByRole } = render(
+      <ConfirmDialog
+        isOpen={true}
+        title={'Delete item?'}
+        message={'Message'}
+        onClose={handleClose}
+        onConfirm={jest.fn()}
+        isConfirmPending={true}
+      />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.click(getByRole('button', { name: /^cancel$/i }))
+    await user.keyboard('{Escape}')
+
+    expect(handleClose).not.toHaveBeenCalled()
   })
 
   it('Labels the dialog using the title so the heading id matches aria-labelledby.', () => {
