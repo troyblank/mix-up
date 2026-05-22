@@ -1,18 +1,20 @@
 import type { FunctionComponent } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { ActionMenu } from '../ActionMenu'
 import { ConfirmDialog } from '../ConfirmDialog'
-import { MessageEmphasis } from '../ConfirmDialog/ConfirmDialog.styles'
 import { DeleteIcon, PlusIcon, RefreshIcon } from '../icons'
 import { ErrorAlert } from '../ErrorAlert'
 import { Loader } from '../Loader'
+import { useDeleteListItem } from '../../hooks/useDeleteListItem'
 import { useList } from '../../hooks/useList'
 import { pickRandom } from '../../utils/random'
 import {
+  DeleteItemSelect,
   RandomPickWrapper,
   ListTitle,
   PickedItemDealing,
 } from './RandomPick.styles'
+import { itemDisplayName, resolveDeleteTargetId } from './utils'
 
 type RandomPickProps = {
   id: string | undefined
@@ -20,9 +22,12 @@ type RandomPickProps = {
 
 export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   const { data: list, isLoading, isError, error } = useList(id)
+  const deleteListItemMutation = useDeleteListItem(id)
   const [picked, setPicked] = useState<string | null>(null)
   const [dealCycle, setDealCycle] = useState(0)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const deleteItemSelectId = useId()
 
   const menuActions = useMemo(
     () => [
@@ -77,6 +82,7 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
 
   const onMenuAction = (actionId: string) => {
     if (actionId === 'delete') {
+      setDeleteTargetId(resolveDeleteTargetId(list!.items, picked))
       setIsDeleteDialogOpen(true)
       return
     }
@@ -89,10 +95,22 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   }
 
   const deleteConfirmMessage =
-    picked != null && picked !== '' ? (
+    list != null && list.items.length > 0 && deleteTargetId != null ? (
       <>
         Are you sure you want to delete?
-        <MessageEmphasis>{`“${picked}”`}</MessageEmphasis>
+        <DeleteItemSelect
+          id={deleteItemSelectId}
+          aria-label={'Item to delete'}
+          value={deleteTargetId}
+          disabled={deleteListItemMutation.isPending}
+          onChange={(event) => setDeleteTargetId(event.target.value)}
+        >
+          {list.items.map((item) => (
+            <option key={item.id} value={item.id}>
+              {itemDisplayName(item)}
+            </option>
+          ))}
+        </DeleteItemSelect>
       </>
     ) : (
       'Are you sure you want to delete this item?'
@@ -118,8 +136,20 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
         isOpen={isDeleteDialogOpen}
         title={'Delete item?'}
         message={deleteConfirmMessage}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={() => setIsDeleteDialogOpen(false)}
+        isConfirmPending={deleteListItemMutation.isPending}
+        closeOnConfirm={false}
+        onClose={() => {
+          if (!deleteListItemMutation.isPending) {
+            setIsDeleteDialogOpen(false)
+          }
+        }}
+        onConfirm={() => {
+          if (deleteTargetId != null) {
+            deleteListItemMutation.mutate(deleteTargetId, {
+              onSuccess: () => setIsDeleteDialogOpen(false),
+            })
+          }
+        }}
       />
     </>
   )

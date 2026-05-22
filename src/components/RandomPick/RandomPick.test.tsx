@@ -1,6 +1,13 @@
+import { fetchAuthSession } from 'aws-amplify/auth'
 import type { ListWithItems } from '../../api/graphql'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, waitFor, waitForElementToBeRemoved } from '@testing-library/react'
+import {
+  render,
+  waitFor,
+  waitForElementToBeRemoved,
+  within,
+} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import Chance from 'chance'
 import { MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
@@ -9,15 +16,38 @@ import { mockListItem, mockListWithItems } from '../../testing/mocks/lists'
 import { theme } from '../../theme'
 import * as randomUtils from '../../utils/random'
 import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
+import { ConfirmDialog } from '../ConfirmDialog'
 import { RandomPick } from './RandomPick'
+import * as randomPickUtils from './utils'
+
+jest.mock('../ConfirmDialog', () => {
+  const actual = jest.requireActual('../ConfirmDialog')
+  return {
+    ...actual,
+    ConfirmDialog: jest.fn((props) => actual.ConfirmDialog(props)),
+  }
+})
 
 const chance = new Chance()
+
+jest.mock('aws-amplify/auth', () => ({
+  fetchAuthSession: jest.fn(),
+}))
+
+const mockFetchAuthSession = jest.mocked(fetchAuthSession)
+const mockConfirmDialog = jest.mocked(ConfirmDialog)
 
 describe('RandomPick', () => {
   let listWithItems: ReturnType<typeof mockListWithItems>
   let listId: string
 
   beforeEach(() => {
+    mockConfirmDialog.mockImplementation(
+      jest.requireActual('../ConfirmDialog').ConfirmDialog,
+    )
+    mockFetchAuthSession.mockResolvedValue({
+      tokens: { idToken: { toString: () => 'test-id-token' } },
+    } as Awaited<ReturnType<typeof fetchAuthSession>>)
     listId = chance.guid()
     listWithItems = mockListWithItems()
     global.fetch = jest.fn((input: RequestInfo | URL) => {
@@ -223,5 +253,225 @@ describe('RandomPick', () => {
     })
 
     expect(await findByText(/this list has no items/i)).toBeInTheDocument()
+  })
+
+  it('Deletes the selected item when delete is confirmed.', async () => {
+    const user = userEvent.setup()
+    const listAfterDelete = {
+      ...listWithItems,
+      items: listWithItems.items.slice(1),
+    }
+
+    const mockFetch = jest.mocked(global.fetch)
+    mockFetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () =>
+          Promise.resolve({
+            data: { list: listWithItems },
+          }),
+      } as unknown as Response),
+    )
+
+    const { findByRole, getByRole, queryByRole } = render(
+      <RandomPick id={listId} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await findByRole('button', { name: /^delete$/i })
+
+    mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url !== API_URL) return Promise.reject(new Error('Unknown URL'))
+
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      if (body.query?.includes('deleteListItem')) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              headers: { get: () => 'application/json' },
+              json: () =>
+                Promise.resolve({ data: { deleteListItem: true } }),
+            } as unknown as Response)
+          }, 50)
+        })
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listAfterDelete } }),
+      } as unknown as Response)
+    })
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete item\?$/i })
+    const itemSelect = within(dialog).getByRole('combobox', {
+      name: /^item to delete$/i,
+    })
+    const itemToDeleteId = (itemSelect as HTMLSelectElement).value
+
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    await waitFor(() => {
+      expect(
+        within(dialog).getByRole('button', { name: /^deleting$/i }),
+      ).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      const deleteCall = mockFetch.mock.calls.find(([, requestInit]) => {
+        const callBody = JSON.parse(String(requestInit?.body ?? '{}'))
+        return callBody.query?.includes('deleteListItem')
+      })
+      expect(deleteCall).toBeDefined()
+      const deleteBody = JSON.parse(
+        String(deleteCall?.[1]?.body ?? '{}'),
+      )
+      expect(deleteBody.variables).toEqual({
+        input: { itemId: itemToDeleteId },
+      })
+    })
+
+    await waitFor(() => {
+      expect(
+        queryByRole('dialog', { name: /^delete item\?$/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it('Keeps the delete dialog open while delete is in progress.', async () => {
+    const user = userEvent.setup()
+    const mockFetch = jest.mocked(global.fetch)
+
+    mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url !== API_URL) return Promise.reject(new Error('Unknown URL'))
+
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      if (body.query?.includes('deleteListItem')) {
+        return new Promise(() => {})
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listWithItems } }),
+      } as unknown as Response)
+    })
+
+    const { findByRole, getByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete item\?$/i })
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    await waitFor(() => {
+      expect(
+        within(dialog).getByRole('button', { name: /^deleting$/i }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }))
+    await user.keyboard('{Escape}')
+
+    expect(
+      getByRole('dialog', { name: /^delete item\?$/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('Does not delete when no delete target is selected.', async () => {
+    const user = userEvent.setup()
+    const resolveDeleteTargetIdSpy = jest
+      .spyOn(randomPickUtils, 'resolveDeleteTargetId')
+      .mockReturnValue(null)
+
+    const mockFetch = jest.mocked(global.fetch)
+    mockFetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listWithItems } }),
+      } as unknown as Response),
+    )
+
+    const { findByRole, getByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete item\?$/i })
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    const deleteCall = mockFetch.mock.calls.find(([, requestInit]) => {
+      const callBody = JSON.parse(String(requestInit?.body ?? '{}'))
+      return callBody.query?.includes('deleteListItem')
+    })
+    expect(deleteCall).toBeUndefined()
+
+    resolveDeleteTargetIdSpy.mockRestore()
+  })
+
+  it('Ignores close requests while delete is pending.', async () => {
+    mockConfirmDialog.mockImplementation(({ isOpen, onClose, onConfirm, title }) =>
+      isOpen ? (
+        <div role="dialog" aria-label={title}>
+          <button type="button" onClick={onClose}>
+            Force close
+          </button>
+          <button type="button" onClick={onConfirm}>
+            Confirm
+          </button>
+        </div>
+      ) : null,
+    )
+
+    const user = userEvent.setup()
+    const mockFetch = jest.mocked(global.fetch)
+
+    mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url !== API_URL) return Promise.reject(new Error('Unknown URL'))
+
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      if (body.query?.includes('deleteListItem')) {
+        return new Promise(() => {})
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listWithItems } }),
+      } as unknown as Response)
+    })
+
+    const { findByRole, getByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete item\?$/i })
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^force close$/i }),
+    )
+
+    expect(dialog).toBeInTheDocument()
   })
 })

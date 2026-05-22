@@ -1,10 +1,24 @@
-import { createList, fetchLists, fetchList, API_URL } from './graphql'
+import { fetchAuthSession } from 'aws-amplify/auth'
+import {
+  createList,
+  deleteListItem,
+  fetchLists,
+  fetchList,
+  API_URL,
+} from './graphql'
 import { mockJsonResponse } from '../testing/mocks/api'
 import { mockList, mockLists } from '../testing/mocks/lists'
+
+jest.mock('aws-amplify/auth', () => ({
+  fetchAuthSession: jest.fn(),
+}))
+
+const mockFetchAuthSession = jest.mocked(fetchAuthSession)
 
 describe('Graphql', () => {
   beforeEach(() => {
     global.fetch = jest.fn()
+    mockFetchAuthSession.mockResolvedValue({ tokens: undefined })
   })
 
   it('Sends a request to the API with the correct URL and list query.', async () => {
@@ -135,6 +149,9 @@ describe('Graphql', () => {
 
     it('Sends a create mutation with variables.', async () => {
       const mockFetch = jest.mocked(global.fetch)
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
       mockFetch.mockResolvedValue(
         mockJsonResponse(
           true,
@@ -149,9 +166,20 @@ describe('Graphql', () => {
       const body = JSON.parse(String(mockFetch.mock.calls[0][1]?.body ?? '{}'))
       expect(body.query).toContain('createList')
       expect(body.variables).toEqual({ input })
+      expect(mockFetch).toHaveBeenCalledWith(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer signed-in-token',
+        },
+        body: expect.any(String),
+      })
     })
 
     it('Returns the created list when the API responds successfully.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
       jest.mocked(global.fetch).mockResolvedValue(
         mockJsonResponse(
           true,
@@ -167,6 +195,9 @@ describe('Graphql', () => {
     })
 
     it('Throws when createList is missing from the response.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
       jest.mocked(global.fetch).mockResolvedValue(
         mockJsonResponse(true, { data: {} }, 200, API_URL),
       )
@@ -177,11 +208,101 @@ describe('Graphql', () => {
     })
 
     it('Throws when the server returns an error.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
       jest.mocked(global.fetch).mockResolvedValue(
         mockJsonResponse(false, { message: 'Server error' }, 500, API_URL),
       )
 
       await expect(createList(input)).rejects.toThrow()
+    })
+
+    it('Throws when there is no signed-in session.', async () => {
+      mockFetchAuthSession.mockResolvedValue({ tokens: undefined })
+
+      await expect(createList(input)).rejects.toThrow('Not Authenticated')
+    })
+  })
+
+  describe('deleteListItem', () => {
+    const input = { itemId: 'item-1' }
+
+    it('Sends a delete mutation with variables.', async () => {
+      const mockFetch = jest.mocked(global.fetch)
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      mockFetch.mockResolvedValue(
+        mockJsonResponse(
+          true,
+          { data: { deleteListItem: true } },
+          200,
+          API_URL,
+        ),
+      )
+
+      await deleteListItem(input)
+
+      const body = JSON.parse(String(mockFetch.mock.calls[0][1]?.body ?? '{}'))
+      expect(body.query).toContain('deleteListItem')
+      expect(body.variables).toEqual({ input })
+      expect(mockFetch).toHaveBeenCalledWith(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer signed-in-token',
+        },
+        body: expect.any(String),
+      })
+    })
+
+    it('Returns true when the API responds successfully.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(
+          true,
+          { data: { deleteListItem: true } },
+          200,
+          API_URL,
+        ),
+      )
+
+      const result = await deleteListItem(input)
+
+      expect(result).toBe(true)
+    })
+
+    it('Throws when deleteListItem is missing from the response.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(true, { data: {} }, 200, API_URL),
+      )
+
+      await expect(deleteListItem(input)).rejects.toThrow(
+        'Invalid delete list item response',
+      )
+    })
+
+    it('Throws when the server returns an error.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(false, { message: 'Server error' }, 500, API_URL),
+      )
+
+      await expect(deleteListItem(input)).rejects.toThrow()
+    })
+
+    it('Throws when there is no signed-in session.', async () => {
+      mockFetchAuthSession.mockResolvedValue({ tokens: undefined })
+
+      await expect(deleteListItem(input)).rejects.toThrow('Not Authenticated')
     })
   })
 })

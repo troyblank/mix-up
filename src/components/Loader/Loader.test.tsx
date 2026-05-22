@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
-import { Loader } from './Loader'
+import { Loader } from './index'
 
 describe('Loader', () => {
   it('Shows the given text.', async () => {
@@ -31,5 +31,31 @@ describe('Loader', () => {
     const spinner = container.querySelector('[aria-hidden="true"]')
 
     expect(spinner).toBeInTheDocument()
+  })
+
+  it('Uses an in-button spinner when requested.', async () => {
+    const wrapper = createAllWrappersWithoutAuth()
+
+    const { container: defaultContainer } = render(
+      <Loader text={'Loading lists'} />,
+      { wrapper },
+    )
+    const { container: inButtonContainer } = render(
+      <Loader text={'Saving'} inButton={true} />,
+      { wrapper },
+    )
+
+    expect(await screen.findByText('Saving')).toBeInTheDocument()
+
+    const defaultSpinner = defaultContainer.querySelector('[aria-hidden="true"]')
+    const inButtonSpinner = inButtonContainer.querySelector(
+      '[aria-hidden="true"]',
+    )
+
+    expect(defaultSpinner).toBeInTheDocument()
+    expect(inButtonSpinner).toBeInTheDocument()
+    expect(getComputedStyle(defaultSpinner!).borderTopColor).not.toBe(
+      getComputedStyle(inButtonSpinner!).borderTopColor,
+    )
   })
 })

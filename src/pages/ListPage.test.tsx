@@ -4,11 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { createWrappersWithoutRouter } from '../testing/wrappers'
 import { mockListWithItems } from '../testing/mocks/lists'
+import { useDeleteListItem } from '../hooks/useDeleteListItem'
 import { useList } from '../hooks/useList'
 import { pickRandom, shuffleArray } from '../utils/random'
 import { ListPage } from './ListPage'
 
 jest.mock('../hooks/useList')
+jest.mock('../hooks/useDeleteListItem')
 jest.mock('../utils/random', () => ({
   ...jest.requireActual<typeof import('../utils/random')>('../utils/random'),
   pickRandom: jest.fn(),
@@ -17,6 +19,8 @@ jest.mock('../utils/random', () => ({
 
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
+const mockUseDeleteListItem = jest.mocked(useDeleteListItem)
+const mockDeleteMutate = jest.fn()
 const mockPickRandom = jest.mocked(pickRandom)
 const mockShuffleArray = jest.mocked(shuffleArray)
 
@@ -65,6 +69,15 @@ describe('ListPage', () => {
   })
 
   beforeEach(() => {
+    mockDeleteMutate.mockImplementation(
+      (_itemId: string, options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.()
+      },
+    )
+    mockUseDeleteListItem.mockReturnValue({
+      mutate: mockDeleteMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useDeleteListItem>)
     mockUseList.mockImplementation((id) => {
       const data =
         id === listIdWithItems
@@ -171,17 +184,19 @@ describe('ListPage', () => {
 
   it('Selecting delete shows a confirmation dialog that names the list.', async () => {
     const user = userEvent.setup()
-    const { findByRole, getByRole, getByText, queryByRole } =
-      renderWithRoute(`/list/${listIdWithItems}`)
+    const { findByRole, getByRole, queryByRole } = renderWithRoute(
+      `/list/${listIdWithItems}`,
+    )
 
     await user.click(await findByRole('button', { name: /^delete$/i }))
 
     expect(
       getByRole('dialog', { name: /^delete item\?$/i }),
     ).toBeInTheDocument()
-    expect(getByText(/Are you sure you want to delete/)).toHaveTextContent(
-      listWithItem.items[0].name,
-    )
+
+    const itemSelect = getByRole('combobox', { name: /^item to delete$/i })
+    expect(itemSelect).toHaveValue(listWithItem.items[0].id)
+    expect(itemSelect).toHaveTextContent(listWithItem.items[0].name)
 
     await user.click(getByRole('button', { name: /^cancel$/i }))
     expect(
