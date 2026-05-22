@@ -1,6 +1,6 @@
 import styled from 'styled-components'
 
-export const Message = styled.p`
+export const Message = styled.div`
   margin: 0 0 ${({ theme }) => theme.space.medium};
   font-size: 0.95rem;
   line-height: 1.45;

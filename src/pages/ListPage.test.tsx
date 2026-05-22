@@ -171,17 +171,19 @@ describe('ListPage', () => {
 
   it('Selecting delete shows a confirmation dialog that names the list.', async () => {
     const user = userEvent.setup()
-    const { findByRole, getByRole, getByText, queryByRole } =
-      renderWithRoute(`/list/${listIdWithItems}`)
+    const { findByRole, getByRole, queryByRole } = renderWithRoute(
+      `/list/${listIdWithItems}`,
+    )
 
     await user.click(await findByRole('button', { name: /^delete$/i }))
 
     expect(
       getByRole('dialog', { name: /^delete item\?$/i }),
     ).toBeInTheDocument()
-    expect(getByText(/Are you sure you want to delete/)).toHaveTextContent(
-      listWithItem.items[0].name,
-    )
+
+    const itemSelect = getByRole('combobox', { name: /^item to delete$/i })
+    expect(itemSelect).toHaveValue(listWithItem.items[0].id)
+    expect(itemSelect).toHaveTextContent(listWithItem.items[0].name)
 
     await user.click(getByRole('button', { name: /^cancel$/i }))
     expect(

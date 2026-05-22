@@ -192,17 +192,16 @@ describe('RandomItem', () => {
       error: null,
     } as unknown as ReturnType<typeof useList>)
 
-    const { findByRole, getByRole, getByText, queryByRole } =
-      renderRandomItem(listId)
+    const { findByRole, getByRole, queryByRole } = renderRandomItem(listId)
 
     await user.click(await findByRole('button', { name: /^delete$/i }))
 
     expect(
       getByRole('dialog', { name: /^delete item\?$/i }),
     ).toBeInTheDocument()
-    expect(getByText(/Are you sure you want to delete/)).toHaveTextContent(
-      itemName,
-    )
+    const itemSelect = getByRole('combobox', { name: /^item to delete$/i })
+    expect(itemSelect).toHaveValue(pickList.items[0].id)
+    expect(itemSelect).toHaveTextContent(itemName)
 
     await user.click(getByRole('button', { name: /^cancel$/i }))
     expect(
@@ -210,12 +209,13 @@ describe('RandomItem', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('Uses generic delete copy when the picked item has no name.', async () => {
+  it('Shows unnamed item in the delete dropdown when the picked item has no name.', async () => {
     const user = userEvent.setup()
     const listId = chance.guid()
+    const unnamedItemId = chance.guid()
     const pickList = {
       ...mockListWithItems({ id: listId, type: 'pick', items: [] }),
-      items: [{ id: chance.guid() }],
+      items: [{ id: unnamedItemId }],
     } as ListWithItems
 
     mockUseList.mockReturnValue({
@@ -225,13 +225,41 @@ describe('RandomItem', () => {
       error: null,
     } as unknown as ReturnType<typeof useList>)
 
-    const { findByRole, getByText } = renderRandomItem(listId)
+    const { findByRole, getByRole } = renderRandomItem(listId)
 
     await user.click(await findByRole('button', { name: /^delete$/i }))
 
-    expect(
-      getByText('Are you sure you want to delete this item?'),
-    ).toBeInTheDocument()
+    const itemSelect = getByRole('combobox', { name: /^item to delete$/i })
+    expect(itemSelect).toHaveValue(unnamedItemId)
+    expect(itemSelect).toHaveTextContent('Unnamed item')
+  })
+
+  it('Lets you choose a different item to delete from the dropdown.', async () => {
+    const user = userEvent.setup()
+    const listId = chance.guid()
+    const firstItem = { id: chance.guid(), name: chance.word() }
+    const secondItem = { id: chance.guid(), name: chance.word() }
+    const pickList = mockListWithItems({
+      id: listId,
+      type: 'pick',
+      items: [firstItem, secondItem],
+    })
+
+    mockUseList.mockReturnValue({
+      data: pickList,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useList>)
+
+    const { findByRole, getByRole } = renderRandomItem(listId)
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const itemSelect = getByRole('combobox', { name: /^item to delete$/i })
+    await user.selectOptions(itemSelect, secondItem.id)
+
+    expect(itemSelect).toHaveValue(secondItem.id)
   })
 
   it('Confirming in the delete dialog closes it.', async () => {
