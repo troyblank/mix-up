@@ -39,7 +39,7 @@ describe('useDeleteListItem', () => {
     mockDeleteListItem.mockReset()
   })
 
-  it('Removes the item from the list cache immediately when delete starts.', async () => {
+  it('Leaves the list cache unchanged while delete is pending.', async () => {
     const list = mockListWithItems({
       id: listId,
       items: [itemToDelete, remainingItem],
@@ -55,15 +55,19 @@ describe('useDeleteListItem', () => {
 
     result.current.mutate(itemToDelete.id)
 
+    expect(queryClient.getQueryData(listQueryKey(listId))).toEqual(list)
+
     await waitFor(() => {
-      expect(queryClient.getQueryData(listQueryKey(listId))).toEqual({
-        ...list,
-        items: [remainingItem],
-      })
+      expect(result.current.isSuccess).toBe(true)
+    })
+
+    expect(queryClient.getQueryData(listQueryKey(listId))).toEqual({
+      ...list,
+      items: [remainingItem],
     })
   })
 
-  it('Restores the previous list in the cache when delete fails.', async () => {
+  it('Leaves the list cache unchanged when delete fails.', async () => {
     const list = mockListWithItems({
       id: listId,
       items: [itemToDelete, remainingItem],
@@ -101,7 +105,7 @@ describe('useDeleteListItem', () => {
     expect(queryClient.getQueryData(listQueryKey(listId))).toBeUndefined()
   })
 
-  it('Skips optimistic update when the list is not in the cache.', async () => {
+  it('Skips cache update when the list is not in the cache.', async () => {
     mockDeleteListItem.mockResolvedValue(true)
 
     const { result } = renderHook(() => useDeleteListItem(listId), {
@@ -117,7 +121,7 @@ describe('useDeleteListItem', () => {
     expect(queryClient.getQueryData(listQueryKey(listId))).toBeUndefined()
   })
 
-  it('Leaves the cache unchanged when the list becomes null during optimistic update.', async () => {
+  it('Leaves the cache unchanged when the list becomes null during cache update.', async () => {
     const list = mockListWithItems({
       id: listId,
       items: [itemToDelete, remainingItem],
