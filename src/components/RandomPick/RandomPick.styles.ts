@@ -97,6 +97,36 @@ export const DeleteItemSelect = styled.select`
   cursor: pointer;
 `
 
+export const DeleteItemCheckboxList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: ${({ theme }) => theme.space.small} 0 0;
+  max-height: 12rem;
+  overflow-y: auto;
+`
+
+export const DeleteItemCheckboxField = styled.li`
+  margin: ${({ theme }) => theme.space.small} 0;
+`
+
+export const DeleteItemCheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.small};
+  cursor: pointer;
+  font-size: inherit;
+  color: ${({ theme }) => theme.color.text};
+`
+
+export const DeleteItemCheckboxInput = styled.input.attrs({ type: 'checkbox' })`
+  margin: 0;
+  width: 1.125em;
+  height: 1.125em;
+  accent-color: ${({ theme }) => theme.color.accent};
+  cursor: pointer;
+  flex-shrink: 0;
+`
+
 export const ShuffledListItemDealing = styled(ShuffledListItem)<{
   $dealIndex: number
 }>`

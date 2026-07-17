@@ -63,6 +63,16 @@ export type DeleteListItemResponse = {
   }
 }
 
+export type DeleteListItemsInput = {
+  itemIds: string[]
+}
+
+export type DeleteListItemsResponse = {
+  data: {
+    deleteListItems: number
+  }
+}
+
 const LISTS_QUERY = `
   query Lists {
     lists {
@@ -181,4 +191,27 @@ export const deleteListItem = async (
     throw new Error('Invalid delete list item response')
   }
   return data.data.deleteListItem
+}
+
+const DELETE_LIST_ITEMS_MUTATION = `
+  mutation DeleteListItems($input: DeleteListItemsInput!) {
+    deleteListItems(input: $input)
+  }
+`
+
+export const deleteListItems = async (
+  input: DeleteListItemsInput,
+): Promise<number> => {
+  const data = await postGraphql<DeleteListItemsResponse>(
+    {
+      query: DELETE_LIST_ITEMS_MUTATION,
+      variables: { input },
+    },
+    'Failed to delete items',
+    { requireAuth: true },
+  )
+  if (data?.data?.deleteListItems == null) {
+    throw new Error('Invalid delete list items response')
+  }
+  return data.data.deleteListItems
 }
