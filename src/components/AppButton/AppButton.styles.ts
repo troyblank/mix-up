@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react'
 import { Link } from 'react-router-dom'
 import styled, { css } from 'styled-components'
 
-export type AppButtonVariant = 'primary' | 'secondary' | 'danger'
+export type AppButtonVariant = 'primary' | 'secondary' | 'danger' | 'success'
 export type AppButtonLayout = 'inline' | 'navigation' | 'form'
 
 type AppButtonTransientProps = {
@@ -116,6 +116,20 @@ const variantDanger = css`
   }
 `
 
+const variantSuccess = css`
+  background: ${({ theme }) => theme.color.success};
+  color: ${({ theme }) => theme.color.bg};
+
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.color.successHover};
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+`
+
 const layouts = {
   inline: layoutInline,
   navigation: layoutNavigation,
@@ -126,6 +140,7 @@ const variants = {
   primary: variantPrimary,
   secondary: variantSecondary,
   danger: variantDanger,
+  success: variantSuccess,
 } satisfies Record<AppButtonVariant, typeof variantPrimary>
 
 export const AppButton = styled.button
@@ -169,5 +184,10 @@ export const SecondaryButton = styled(AppButton).attrs({
 
 export const DangerButton = styled(AppButton).attrs({
   $variant: 'danger',
+  $layout: 'navigation',
+})``
+
+export const SuccessButton = styled(AppButton).attrs({
+  $variant: 'success',
   $layout: 'navigation',
 })``

@@ -195,6 +195,24 @@ describe('Confirm dialog', () => {
     expect(handleClose).not.toHaveBeenCalled()
   })
 
+  it('Uses a success confirm button when confirmVariant is success.', () => {
+    const { getByRole } = render(
+      <ConfirmDialog
+        isOpen={true}
+        title={'Add item'}
+        message={'Message'}
+        onClose={jest.fn()}
+        onConfirm={jest.fn()}
+        confirmVariant={'success'}
+      />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    expect(getByRole('button', { name: /^confirm$/i })).toHaveStyle({
+      background: '#4d9b6a',
+    })
+  })
+
   it('Labels the dialog using the title so the heading id matches aria-labelledby.', () => {
     const titleText = 'Confirm this action'
 

@@ -42,6 +42,17 @@ export type CreateListResponse = {
   }
 }
 
+export type InsertListItemInput = {
+  listId: string
+  name: string
+}
+
+export type InsertListItemResponse = {
+  data: {
+    insertListItem: ListItem
+  }
+}
+
 export type DeleteListItemInput = {
   itemId: string
 }
@@ -121,6 +132,32 @@ export const createList = async (
     throw new Error('Invalid create list response')
   }
   return data.data.createList
+}
+
+const INSERT_LIST_ITEM_MUTATION = `
+  mutation InsertListItem($input: InsertListItemInput!) {
+    insertListItem(input: $input) {
+      id
+      name
+    }
+  }
+`
+
+export const insertListItem = async (
+  input: InsertListItemInput,
+): Promise<ListItem> => {
+  const data = await postGraphql<InsertListItemResponse>(
+    {
+      query: INSERT_LIST_ITEM_MUTATION,
+      variables: { input },
+    },
+    'Failed to add item',
+    { requireAuth: true },
+  )
+  if (data?.data?.insertListItem == null) {
+    throw new Error('Invalid insert list item response')
+  }
+  return data.data.insertListItem
 }
 
 const DELETE_LIST_ITEM_MUTATION = `

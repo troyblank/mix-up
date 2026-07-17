@@ -6,8 +6,11 @@ import { Actions, Dialog, DialogTitle } from '../Dialog'
 import {
   ConfirmButtonSpinner,
   ConfirmDangerButton,
+  ConfirmSuccessButton,
   Message,
 } from './ConfirmDialog.styles'
+
+export type ConfirmDialogVariant = 'danger' | 'success'
 
 export type ConfirmDialogProps = {
   isOpen: boolean
@@ -16,6 +19,8 @@ export type ConfirmDialogProps = {
   onClose: () => void
   onConfirm: () => void
   isConfirmPending?: boolean
+  confirmPendingAriaLabel?: string
+  confirmVariant?: ConfirmDialogVariant
   closeOnConfirm?: boolean
 }
 
@@ -26,9 +31,13 @@ export const ConfirmDialog: FunctionComponent<ConfirmDialogProps> = ({
   onClose,
   onConfirm,
   isConfirmPending = false,
+  confirmPendingAriaLabel = 'Deleting',
+  confirmVariant = 'danger',
   closeOnConfirm = true,
 }) => {
   const titleId = useId()
+  const ConfirmButton =
+    confirmVariant === 'success' ? ConfirmSuccessButton : ConfirmDangerButton
 
   const handleClose = () => {
     if (!isConfirmPending) {
@@ -46,11 +55,11 @@ export const ConfirmDialog: FunctionComponent<ConfirmDialogProps> = ({
       <DialogTitle id={titleId}>{title}</DialogTitle>
       <Message>{message}</Message>
       <Actions>
-        <ConfirmDangerButton
+        <ConfirmButton
           type={'button'}
           disabled={isConfirmPending}
           aria-busy={isConfirmPending}
-          aria-label={isConfirmPending ? 'Deleting' : undefined}
+          aria-label={isConfirmPending ? confirmPendingAriaLabel : undefined}
           onClick={() => {
             onConfirm()
             if (closeOnConfirm && !isConfirmPending) {
@@ -63,7 +72,7 @@ export const ConfirmDialog: FunctionComponent<ConfirmDialogProps> = ({
           ) : (
             'Confirm'
           )}
-        </ConfirmDangerButton>
+        </ConfirmButton>
         <SecondaryButton
           type={'button'}
           disabled={isConfirmPending}

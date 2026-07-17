@@ -248,11 +248,279 @@ describe('RandomPick', () => {
       } as unknown as Response),
     )
 
-    const { findByText } = render(<RandomPick id={listId} />, {
+    const { findByText, findByRole } = render(<RandomPick id={listId} />, {
       wrapper: createAllWrappersWithoutAuth(),
     })
 
     expect(await findByText(/this list has no items/i)).toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^add$/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('Closes the add dialog when cancel is clicked before submit.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole, queryByRole } = render(
+      <RandomPick id={listId} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+    await user.click(getByRole('button', { name: /^cancel$/i }))
+
+    expect(
+      queryByRole('dialog', { name: /^add item$/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Ignores close requests while add is pending.', async () => {
+    mockConfirmDialog.mockImplementation(
+      ({ isOpen, onClose, onConfirm, message, title }) =>
+        isOpen ? (
+          <div role="dialog" aria-label={title}>
+            {message}
+            <button type="button" onClick={onClose}>
+              Force close
+            </button>
+            <button type="button" onClick={onConfirm}>
+              Confirm
+            </button>
+          </div>
+        ) : null,
+    )
+
+    const user = userEvent.setup()
+    const mockFetch = jest.mocked(global.fetch)
+
+    mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url !== API_URL) return Promise.reject(new Error('Unknown URL'))
+
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      if (body.query?.includes('insertListItem')) {
+        return new Promise(() => {})
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listWithItems } }),
+      } as unknown as Response)
+    })
+
+    const { findByRole, getByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+
+    const dialog = getByRole('dialog', { name: /^add item$/i })
+    await user.type(
+      within(dialog).getByRole('textbox', { name: /^item name$/i }),
+      chance.word(),
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^force close$/i }),
+    )
+
+    expect(dialog).toBeInTheDocument()
+  })
+
+  it('Adds an item when add is confirmed.', async () => {
+    const user = userEvent.setup()
+    const newItemName = chance.sentence({ words: 2 })
+    const newItem = { id: chance.guid(), name: newItemName }
+    const listAfterAdd = {
+      ...listWithItems,
+      items: [...listWithItems.items, newItem],
+    }
+
+    const mockFetch = jest.mocked(global.fetch)
+    mockFetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () =>
+          Promise.resolve({
+            data: { list: listWithItems },
+          }),
+      } as unknown as Response),
+    )
+
+    const { findByRole, getByRole, queryByRole } = render(
+      <RandomPick id={listId} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await findByRole('button', { name: /^add$/i })
+
+    mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url !== API_URL) return Promise.reject(new Error('Unknown URL'))
+
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      if (body.query?.includes('insertListItem')) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              headers: { get: () => 'application/json' },
+              json: () =>
+                Promise.resolve({
+                  data: { insertListItem: newItem },
+                }),
+            } as unknown as Response)
+          }, 50)
+        })
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listAfterAdd } }),
+      } as unknown as Response)
+    })
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+
+    const dialog = getByRole('dialog', { name: /^add item$/i })
+    await user.type(
+      within(dialog).getByRole('textbox', { name: /^item name$/i }),
+      newItemName,
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    await waitFor(() => {
+      expect(
+        within(dialog).getByRole('button', { name: /^adding$/i }),
+      ).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      const insertCall = mockFetch.mock.calls.find(([, requestInit]) => {
+        const callBody = JSON.parse(String(requestInit?.body ?? '{}'))
+        return callBody.query?.includes('insertListItem')
+      })
+      expect(insertCall).toBeDefined()
+      const insertBody = JSON.parse(
+        String(insertCall?.[1]?.body ?? '{}'),
+      )
+      expect(insertBody.variables).toEqual({
+        input: { listId, name: newItemName },
+      })
+    })
+
+    await waitFor(() => {
+      expect(
+        queryByRole('dialog', { name: /^add item$/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it('Keeps the add dialog open while insert is in progress.', async () => {
+    const user = userEvent.setup()
+    const mockFetch = jest.mocked(global.fetch)
+
+    mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url !== API_URL) return Promise.reject(new Error('Unknown URL'))
+
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      if (body.query?.includes('insertListItem')) {
+        return new Promise(() => {})
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listWithItems } }),
+      } as unknown as Response)
+    })
+
+    const { findByRole, getByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+
+    const dialog = getByRole('dialog', { name: /^add item$/i })
+    await user.type(
+      within(dialog).getByRole('textbox', { name: /^item name$/i }),
+      chance.word(),
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    await waitFor(() => {
+      expect(
+        within(dialog).getByRole('button', { name: /^adding$/i }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }))
+    await user.keyboard('{Escape}')
+
+    expect(getByRole('dialog', { name: /^add item$/i })).toBeInTheDocument()
+  })
+
+  it('Does not add when the item name is blank.', async () => {
+    const user = userEvent.setup()
+    const mockFetch = jest.mocked(global.fetch)
+    mockFetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: listWithItems } }),
+      } as unknown as Response),
+    )
+
+    const { findByRole, getByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+
+    const dialog = getByRole('dialog', { name: /^add item$/i })
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    const insertCall = mockFetch.mock.calls.find(([, requestInit]) => {
+      const callBody = JSON.parse(String(requestInit?.body ?? '{}'))
+      return callBody.query?.includes('insertListItem')
+    })
+    expect(insertCall).toBeUndefined()
+  })
+
+  it('Deletes the selected item when delete is confirmed.', async () => {
+    const user = userEvent.setup()
+    const emptyList = mockListWithItems({ items: [] })
+    const pickRandomSpy = jest.spyOn(randomUtils, 'pickRandom')
+
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ data: { list: emptyList } }),
+      } as unknown as Response),
+    )
+
+    const { findByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await findByRole('button', { name: /^refresh choice$/i })
+    const callsBefore = pickRandomSpy.mock.calls.length
+    await user.click(await findByRole('button', { name: /^refresh choice$/i }))
+
+    expect(pickRandomSpy.mock.calls.length).toBe(callsBefore)
+    pickRandomSpy.mockRestore()
   })
 
   it('Deletes the selected item when delete is confirmed.', async () => {

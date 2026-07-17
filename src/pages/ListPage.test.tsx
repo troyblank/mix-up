@@ -5,12 +5,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { createWrappersWithoutRouter } from '../testing/wrappers'
 import { mockListWithItems } from '../testing/mocks/lists'
 import { useDeleteListItem } from '../hooks/useDeleteListItem'
+import { useInsertListItem } from '../hooks/useInsertListItem'
 import { useList } from '../hooks/useList'
 import { pickRandom, shuffleArray } from '../utils/random'
 import { ListPage } from './ListPage'
 
 jest.mock('../hooks/useList')
 jest.mock('../hooks/useDeleteListItem')
+jest.mock('../hooks/useInsertListItem')
 jest.mock('../utils/random', () => ({
   ...jest.requireActual<typeof import('../utils/random')>('../utils/random'),
   pickRandom: jest.fn(),
@@ -20,7 +22,9 @@ jest.mock('../utils/random', () => ({
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
 const mockUseDeleteListItem = jest.mocked(useDeleteListItem)
+const mockUseInsertListItem = jest.mocked(useInsertListItem)
 const mockDeleteMutate = jest.fn()
+const mockInsertMutate = jest.fn()
 const mockPickRandom = jest.mocked(pickRandom)
 const mockShuffleArray = jest.mocked(shuffleArray)
 
@@ -74,10 +78,19 @@ describe('ListPage', () => {
         options?.onSuccess?.()
       },
     )
+    mockInsertMutate.mockImplementation(
+      (_name: string, options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.()
+      },
+    )
     mockUseDeleteListItem.mockReturnValue({
       mutate: mockDeleteMutate,
       isPending: false,
     } as unknown as ReturnType<typeof useDeleteListItem>)
+    mockUseInsertListItem.mockReturnValue({
+      mutate: mockInsertMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useInsertListItem>)
     mockUseList.mockImplementation((id) => {
       const data =
         id === listIdWithItems
@@ -161,9 +174,19 @@ describe('ListPage', () => {
     mockPickRandom
       .mockReturnValueOnce(listWithItem.items[0])
       .mockReturnValueOnce(null)
-    const { findByRole } = renderWithRoute(`/list/${listIdWithItems}`)
+    const { findByRole, getByRole, queryByRole } = renderWithRoute(
+      `/list/${listIdWithItems}`,
+    )
 
     await user.click(await findByRole('button', { name: /^add$/i }))
+    expect(
+      getByRole('dialog', { name: /^add item$/i }),
+    ).toBeInTheDocument()
+    await user.click(getByRole('button', { name: /^cancel$/i }))
+    expect(
+      queryByRole('dialog', { name: /^add item$/i }),
+    ).not.toBeInTheDocument()
+
     await user.click(await findByRole('button', { name: /^refresh choice$/i }))
 
     expect(mockPickRandom).toHaveBeenCalledTimes(2)

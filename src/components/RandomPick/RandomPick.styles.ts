@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components'
+import styled, { css, keyframes } from 'styled-components'
 
 const dealCardIn = keyframes`
   from {
@@ -59,33 +59,42 @@ export const ShuffledListItem = styled.li`
 
 const deleteItemSelectChevron = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath stroke='%23a8a8a8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E")`
 
-export const DeleteItemSelect = styled.select`
+const itemFieldStyles = css`
   display: block;
   width: 100%;
   margin: ${({ theme }) => theme.space.small} 0 0;
-  padding: ${({ theme }) => theme.space.medium}
-    calc(${({ theme }) => theme.space.extraLarge} + 1.25rem)
-    ${({ theme }) => theme.space.medium}
-    ${({ theme }) => theme.space.medium};
+  padding: ${({ theme }) => theme.space.medium};
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
-  appearance: none;
   background-color: ${({ theme }) => theme.color.surface};
-  background-image: ${deleteItemSelectChevron};
-  background-repeat: no-repeat;
-  background-position: right ${({ theme }) => theme.space.medium} center;
-  background-size: 0.75rem;
   color: ${({ theme }) => theme.color.text};
   box-shadow: inset 0 1px 2px ${({ theme }) => theme.color.shadow};
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-  cursor: pointer;
 
   &:focus {
     outline: 0;
     border-color: ${({ theme }) => theme.color.accent};
   }
+`
+
+export const AddItemInput = styled.input`
+  ${itemFieldStyles}
+`
+
+export const DeleteItemSelect = styled.select`
+  ${itemFieldStyles}
+  padding: ${({ theme }) => theme.space.medium}
+    calc(${({ theme }) => theme.space.extraLarge} + 1.25rem)
+    ${({ theme }) => theme.space.medium}
+    ${({ theme }) => theme.space.medium};
+  appearance: none;
+  background-image: ${deleteItemSelectChevron};
+  background-repeat: no-repeat;
+  background-position: right ${({ theme }) => theme.space.medium} center;
+  background-size: 0.75rem;
+  cursor: pointer;
 `
 
 export const ShuffledListItemDealing = styled(ShuffledListItem)<{

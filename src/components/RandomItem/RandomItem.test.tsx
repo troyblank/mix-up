@@ -5,16 +5,20 @@ import userEvent from '@testing-library/user-event'
 import { createWrappersWithoutRouter } from '../../testing/wrappers'
 import { mockListWithItems } from '../../testing/mocks/lists'
 import { useDeleteListItem } from '../../hooks/useDeleteListItem'
+import { useInsertListItem } from '../../hooks/useInsertListItem'
 import { useList } from '../../hooks/useList'
 import { RandomItem } from './RandomItem'
 
 jest.mock('../../hooks/useList')
 jest.mock('../../hooks/useDeleteListItem')
+jest.mock('../../hooks/useInsertListItem')
 
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
 const mockUseDeleteListItem = jest.mocked(useDeleteListItem)
+const mockUseInsertListItem = jest.mocked(useInsertListItem)
 const mockDeleteMutate = jest.fn()
+const mockInsertMutate = jest.fn()
 
 function renderRandomItem(id: string | undefined) {
   return render(<RandomItem id={id} />, {
@@ -29,10 +33,19 @@ describe('RandomItem', () => {
         options?.onSuccess?.()
       },
     )
+    mockInsertMutate.mockImplementation(
+      (_name: string, options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.()
+      },
+    )
     mockUseDeleteListItem.mockReturnValue({
       mutate: mockDeleteMutate,
       isPending: false,
     } as unknown as ReturnType<typeof useDeleteListItem>)
+    mockUseInsertListItem.mockReturnValue({
+      mutate: mockInsertMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useInsertListItem>)
     mockUseList.mockReturnValue({
       data: null,
       isLoading: false,

@@ -6,9 +6,11 @@ import { DeleteIcon, PlusIcon, RefreshIcon } from '../icons'
 import { ErrorAlert } from '../ErrorAlert'
 import { Loader } from '../Loader'
 import { useDeleteListItem } from '../../hooks/useDeleteListItem'
+import { useInsertListItem } from '../../hooks/useInsertListItem'
 import { useList } from '../../hooks/useList'
 import { pickRandom } from '../../utils/random'
 import {
+  AddItemInput,
   DeleteItemSelect,
   RandomPickWrapper,
   ListTitle,
@@ -23,10 +25,14 @@ type RandomPickProps = {
 export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   const { data: list, isLoading, isError, error } = useList(id)
   const deleteListItemMutation = useDeleteListItem(id)
+  const insertListItemMutation = useInsertListItem(id)
   const [picked, setPicked] = useState<string | null>(null)
   const [dealCycle, setDealCycle] = useState(0)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [addItemName, setAddItemName] = useState('')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const addItemInputId = useId()
   const deleteItemSelectId = useId()
 
   const menuActions = useMemo(
@@ -81,6 +87,12 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   ])
 
   const onMenuAction = (actionId: string) => {
+    if (actionId === 'add') {
+      setAddItemName('')
+      setIsAddDialogOpen(true)
+      return
+    }
+
     if (actionId === 'delete') {
       setDeleteTargetId(resolveDeleteTargetId(list!.items, picked))
       setIsDeleteDialogOpen(true)
@@ -93,6 +105,16 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
       setPicked(item?.name ?? null)
     }
   }
+
+  const addConfirmMessage = (
+    <AddItemInput
+      id={addItemInputId}
+      aria-label={'Item name'}
+      value={addItemName}
+      disabled={insertListItemMutation.isPending}
+      onChange={(event) => setAddItemName(event.target.value)}
+    />
+  )
 
   const deleteConfirmMessage =
     list != null && list.items.length > 0 && deleteTargetId != null ? (
@@ -121,17 +143,40 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   if (isError)
     return <ErrorAlert message={'Failed to load pick'} error={error} />
   if (list == null) return null
-  if (list.items.length === 0) {
-    return <p>This list has no items.</p>
-  }
 
   return (
     <>
       <RandomPickWrapper>
         <ListTitle>{list.name}</ListTitle>
-        <PickedItemDealing key={dealCycle}>{picked}</PickedItemDealing>
+        {list.items.length === 0 ? (
+          <p>This list has no items.</p>
+        ) : (
+          <PickedItemDealing key={dealCycle}>{picked}</PickedItemDealing>
+        )}
       </RandomPickWrapper>
       <ActionMenu actions={menuActions} onAction={onMenuAction} />
+      <ConfirmDialog
+        isOpen={isAddDialogOpen}
+        title={'Add item'}
+        message={addConfirmMessage}
+        isConfirmPending={insertListItemMutation.isPending}
+        confirmPendingAriaLabel={'Adding'}
+        confirmVariant={'success'}
+        closeOnConfirm={false}
+        onClose={() => {
+          if (!insertListItemMutation.isPending) {
+            setIsAddDialogOpen(false)
+          }
+        }}
+        onConfirm={() => {
+          const trimmedName = addItemName.trim()
+          if (trimmedName.length === 0) return
+
+          insertListItemMutation.mutate(trimmedName, {
+            onSuccess: () => setIsAddDialogOpen(false),
+          })
+        }}
+      />
       <ConfirmDialog
         isOpen={isDeleteDialogOpen}
         title={'Delete item?'}

@@ -1,8 +1,8 @@
-import styled from 'styled-components'
-import { DangerButton } from '../AppButton'
+import styled, { css } from 'styled-components'
+import { DangerButton, SuccessButton } from '../AppButton'
 import { Spinner } from '../Loader/Loader.styles'
 
-export const ConfirmDangerButton = styled(DangerButton)`
+const confirmButtonStyles = css`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,6 +11,14 @@ export const ConfirmDangerButton = styled(DangerButton)`
   &[aria-busy='true'] {
     padding: ${({ theme }) => theme.space.none};
   }
+`
+
+export const ConfirmDangerButton = styled(DangerButton)`
+  ${confirmButtonStyles}
+`
+
+export const ConfirmSuccessButton = styled(SuccessButton)`
+  ${confirmButtonStyles}
 `
 
 export const ConfirmButtonSpinner = styled(Spinner).attrs({

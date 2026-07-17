@@ -9,6 +9,8 @@ export const theme = {
     accentHover: '#7ab8c2',
     surface: '#2a2d36',
     danger: '#a84848',
+    success: '#4d9b6a',
+    successHover: '#5cb67a',
     shadow: 'rgba(0, 0, 0, 0.35)',
   },
   font: {

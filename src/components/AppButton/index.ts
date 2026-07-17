@@ -4,6 +4,7 @@ export {
   DangerButton,
   PrimaryButton,
   SecondaryButton,
+  SuccessButton,
   type AppButtonLayout,
   type AppButtonVariant,
 } from './AppButton.styles'
