@@ -5,19 +5,23 @@ import userEvent from '@testing-library/user-event'
 import { createWrappersWithoutRouter } from '../../testing/wrappers'
 import { mockListWithItems } from '../../testing/mocks/lists'
 import { useDeleteListItem } from '../../hooks/useDeleteListItem'
+import { useDeleteListItems } from '../../hooks/useDeleteListItems'
 import { useInsertListItem } from '../../hooks/useInsertListItem'
 import { useList } from '../../hooks/useList'
 import { RandomItem } from './RandomItem'
 
 jest.mock('../../hooks/useList')
 jest.mock('../../hooks/useDeleteListItem')
+jest.mock('../../hooks/useDeleteListItems')
 jest.mock('../../hooks/useInsertListItem')
 
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
 const mockUseDeleteListItem = jest.mocked(useDeleteListItem)
+const mockUseDeleteListItems = jest.mocked(useDeleteListItems)
 const mockUseInsertListItem = jest.mocked(useInsertListItem)
 const mockDeleteMutate = jest.fn()
+const mockDeleteItemsMutate = jest.fn()
 const mockInsertMutate = jest.fn()
 
 function renderRandomItem(id: string | undefined) {
@@ -33,6 +37,11 @@ describe('RandomItem', () => {
         options?.onSuccess?.()
       },
     )
+    mockDeleteItemsMutate.mockImplementation(
+      (_itemIds: string[], options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.()
+      },
+    )
     mockInsertMutate.mockImplementation(
       (_name: string, options?: { onSuccess?: () => void }) => {
         options?.onSuccess?.()
@@ -42,6 +51,10 @@ describe('RandomItem', () => {
       mutate: mockDeleteMutate,
       isPending: false,
     } as unknown as ReturnType<typeof useDeleteListItem>)
+    mockUseDeleteListItems.mockReturnValue({
+      mutate: mockDeleteItemsMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useDeleteListItems>)
     mockUseInsertListItem.mockReturnValue({
       mutate: mockInsertMutate,
       isPending: false,
@@ -180,7 +193,9 @@ describe('RandomItem', () => {
     expect(
       await findByRole('button', { name: /^refresh choice$/i }),
     ).toBeInTheDocument()
-    expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^delete$/i }),
+    ).toBeInTheDocument()
   })
 
   it('Returns null when list type is neither pick nor list.', () => {

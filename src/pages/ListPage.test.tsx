@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { createWrappersWithoutRouter } from '../testing/wrappers'
 import { mockListWithItems } from '../testing/mocks/lists'
 import { useDeleteListItem } from '../hooks/useDeleteListItem'
+import { useDeleteListItems } from '../hooks/useDeleteListItems'
 import { useInsertListItem } from '../hooks/useInsertListItem'
 import { useList } from '../hooks/useList'
 import { pickRandom, shuffleArray } from '../utils/random'
@@ -12,6 +13,7 @@ import { ListPage } from './ListPage'
 
 jest.mock('../hooks/useList')
 jest.mock('../hooks/useDeleteListItem')
+jest.mock('../hooks/useDeleteListItems')
 jest.mock('../hooks/useInsertListItem')
 jest.mock('../utils/random', () => ({
   ...jest.requireActual<typeof import('../utils/random')>('../utils/random'),
@@ -22,8 +24,10 @@ jest.mock('../utils/random', () => ({
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
 const mockUseDeleteListItem = jest.mocked(useDeleteListItem)
+const mockUseDeleteListItems = jest.mocked(useDeleteListItems)
 const mockUseInsertListItem = jest.mocked(useInsertListItem)
 const mockDeleteMutate = jest.fn()
+const mockDeleteItemsMutate = jest.fn()
 const mockInsertMutate = jest.fn()
 const mockPickRandom = jest.mocked(pickRandom)
 const mockShuffleArray = jest.mocked(shuffleArray)
@@ -78,6 +82,11 @@ describe('ListPage', () => {
         options?.onSuccess?.()
       },
     )
+    mockDeleteItemsMutate.mockImplementation(
+      (_itemIds: string[], options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.()
+      },
+    )
     mockInsertMutate.mockImplementation(
       (_name: string, options?: { onSuccess?: () => void }) => {
         options?.onSuccess?.()
@@ -87,6 +96,10 @@ describe('ListPage', () => {
       mutate: mockDeleteMutate,
       isPending: false,
     } as unknown as ReturnType<typeof useDeleteListItem>)
+    mockUseDeleteListItems.mockReturnValue({
+      mutate: mockDeleteItemsMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useDeleteListItems>)
     mockUseInsertListItem.mockReturnValue({
       mutate: mockInsertMutate,
       isPending: false,
@@ -157,10 +170,8 @@ describe('ListPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('Shows add and refresh choice for list-type lists.', async () => {
-    const { findByRole, queryByRole } = renderWithRoute(
-      `/list/${listIdListType}`,
-    )
+  it('Shows add, refresh choice, and delete actions for list-type lists.', async () => {
+    const { findByRole } = renderWithRoute(`/list/${listIdListType}`)
 
     expect(
       await findByRole('button', { name: /^add$/i }),
@@ -168,7 +179,9 @@ describe('ListPage', () => {
     expect(
       await findByRole('button', { name: /^refresh choice$/i }),
     ).toBeInTheDocument()
-    expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^delete$/i }),
+    ).toBeInTheDocument()
   })
 
   it('Runs menu actions when users interact with the bottom controls on a pick list.', async () => {
@@ -220,6 +233,50 @@ describe('ListPage', () => {
     await user.click(getByRole('button', { name: /^cancel$/i }))
     expect(
       queryByRole('dialog', { name: /^add item$/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Selecting delete on a list-type list shows a checkbox dialog.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole, queryByRole } = renderWithRoute(
+      `/list/${listIdListType}`,
+    )
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete items\?$/i })
+    expect(
+      within(dialog).getByRole('checkbox', {
+        name: listTypeList.items[0].name,
+      }),
+    ).toBeInTheDocument()
+
+    await user.click(getByRole('button', { name: /^cancel$/i }))
+    expect(
+      queryByRole('dialog', { name: /^delete items\?$/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Confirming delete on a list-type list closes the dialog.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole, queryByRole } = renderWithRoute(
+      `/list/${listIdListType}`,
+    )
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete items\?$/i })
+    await user.click(
+      within(dialog).getByRole('checkbox', {
+        name: listTypeList.items[0].name,
+      }),
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    expect(
+      queryByRole('dialog', { name: /^delete items\?$/i }),
     ).not.toBeInTheDocument()
   })
 
