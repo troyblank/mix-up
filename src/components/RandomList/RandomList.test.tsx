@@ -5,13 +5,26 @@ import Chance from 'chance'
 import { mockListItem, mockListWithItems } from '../../testing/mocks/lists'
 import * as randomUtils from '../../utils/random'
 import { createAllWrappersWithoutAuth } from '../../testing/wrappers'
+import { useInsertListItem } from '../../hooks/useInsertListItem'
 import { useList } from '../../hooks/useList'
+import { ConfirmDialog } from '../ConfirmDialog'
 import { RandomList } from './RandomList'
 
 jest.mock('../../hooks/useList')
+jest.mock('../../hooks/useInsertListItem')
+jest.mock('../ConfirmDialog', () => {
+  const actual = jest.requireActual('../ConfirmDialog')
+  return {
+    ...actual,
+    ConfirmDialog: jest.fn((props) => actual.ConfirmDialog(props)),
+  }
+})
 
 const chance = new Chance()
 const mockUseList = jest.mocked(useList)
+const mockUseInsertListItem = jest.mocked(useInsertListItem)
+const mockConfirmDialog = jest.mocked(ConfirmDialog)
+const mockInsertMutate = jest.fn()
 
 describe('RandomList', () => {
   let listWithItems: ReturnType<typeof mockListWithItems>
@@ -19,6 +32,19 @@ describe('RandomList', () => {
 
   beforeEach(() => {
     mockUseList.mockReset()
+    mockConfirmDialog.mockImplementation(
+      jest.requireActual('../ConfirmDialog').ConfirmDialog,
+    )
+    mockInsertMutate.mockReset()
+    mockInsertMutate.mockImplementation(
+      (_name: string, options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.()
+      },
+    )
+    mockUseInsertListItem.mockReturnValue({
+      mutate: mockInsertMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useInsertListItem>)
     listId = chance.guid()
     listWithItems = mockListWithItems({
       id: listId,
@@ -188,11 +214,155 @@ describe('RandomList', () => {
       error: null,
     } as ReturnType<typeof useList>)
 
-    const { findByText } = render(<RandomList id={listId} />, {
+    const { findByText, findByRole } = render(<RandomList id={listId} />, {
       wrapper: createAllWrappersWithoutAuth(),
     })
 
     expect(await findByText(/this list has no items/i)).toBeInTheDocument()
+    expect(
+      await findByRole('button', { name: /^add$/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('Does not reshuffle when refresh choice is used on an empty list.', async () => {
+    const user = userEvent.setup()
+    const shuffleSpy = jest.spyOn(randomUtils, 'shuffleArray')
+    const emptyList = mockListWithItems({ items: [], type: 'list' })
+    mockUseList.mockReturnValue({
+      data: emptyList,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useList>)
+
+    const { findByRole } = render(<RandomList id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await findByRole('button', { name: /^refresh choice$/i })
+    const callsBefore = shuffleSpy.mock.calls.length
+
+    await user.click(await findByRole('button', { name: /^refresh choice$/i }))
+
+    expect(shuffleSpy.mock.calls.length).toBe(callsBefore)
+
+    shuffleSpy.mockRestore()
+  })
+
+  it('Closes the add dialog when cancel is clicked before submit.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole, queryByRole } = render(
+      <RandomList id={listId} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+    await user.click(getByRole('button', { name: /^cancel$/i }))
+
+    expect(
+      queryByRole('dialog', { name: /^add item$/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Adds an item when add is confirmed.', async () => {
+    const user = userEvent.setup()
+    const newItemName = chance.sentence({ words: 2 })
+    const { findByRole, getByRole, queryByRole } = render(
+      <RandomList id={listId} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+
+    const dialog = getByRole('dialog', { name: /^add item$/i })
+    await user.type(
+      within(dialog).getByRole('textbox', { name: /^item name$/i }),
+      newItemName,
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    expect(mockInsertMutate).toHaveBeenCalledWith(
+      newItemName,
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    )
+    await waitFor(() => {
+      expect(
+        queryByRole('dialog', { name: /^add item$/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it('Does not add when the item name is blank.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole } = render(<RandomList id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+
+    const dialog = getByRole('dialog', { name: /^add item$/i })
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    expect(mockInsertMutate).not.toHaveBeenCalled()
+  })
+
+  it('Ignores close requests while add is pending.', async () => {
+    mockConfirmDialog.mockImplementation(
+      ({ isOpen, onClose, onConfirm, message, title }) =>
+        isOpen ? (
+          <div role="dialog" aria-label={title}>
+            {message}
+            <button type="button" onClick={onClose}>
+              Force close
+            </button>
+            <button type="button" onClick={onConfirm}>
+              Confirm
+            </button>
+          </div>
+        ) : null,
+    )
+
+    const user = userEvent.setup()
+    mockUseInsertListItem
+      .mockReturnValueOnce({
+        mutate: mockInsertMutate,
+        isPending: false,
+      } as unknown as ReturnType<typeof useInsertListItem>)
+      .mockReturnValue({
+        mutate: mockInsertMutate,
+        isPending: true,
+      } as unknown as ReturnType<typeof useInsertListItem>)
+
+    const { findByRole, getByRole, rerender } = render(
+      <RandomList id={listId} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+
+    const dialog = getByRole('dialog', { name: /^add item$/i })
+    await user.type(
+      within(dialog).getByRole('textbox', { name: /^item name$/i }),
+      chance.word(),
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: /^confirm$/i }),
+    )
+
+    rerender(<RandomList id={listId} />)
+
+    await user.click(
+      within(getByRole('dialog', { name: /^add item$/i })).getByRole(
+        'button',
+        { name: /^force close$/i },
+      ),
+    )
+
+    expect(getByRole('dialog', { name: /^add item$/i })).toBeInTheDocument()
   })
 
   it('Reshuffles when the item count changes.', async () => {

@@ -157,15 +157,17 @@ describe('ListPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('Shows only refresh choice for list-type lists.', async () => {
+  it('Shows add and refresh choice for list-type lists.', async () => {
     const { findByRole, queryByRole } = renderWithRoute(
       `/list/${listIdListType}`,
     )
 
     expect(
+      await findByRole('button', { name: /^add$/i }),
+    ).toBeInTheDocument()
+    expect(
       await findByRole('button', { name: /^refresh choice$/i }),
     ).toBeInTheDocument()
-    expect(queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument()
     expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
   })
 
@@ -203,6 +205,22 @@ describe('ListPage', () => {
     await user.click(await findByRole('button', { name: /^refresh choice$/i }))
 
     expect(mockShuffleArray.mock.calls.length).toBeGreaterThan(callsBefore)
+  })
+
+  it('Opens the add dialog when add is used on a list-type list.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, getByRole, queryByRole } = renderWithRoute(
+      `/list/${listIdListType}`,
+    )
+
+    await user.click(await findByRole('button', { name: /^add$/i }))
+    expect(
+      getByRole('dialog', { name: /^add item$/i }),
+    ).toBeInTheDocument()
+    await user.click(getByRole('button', { name: /^cancel$/i }))
+    expect(
+      queryByRole('dialog', { name: /^add item$/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('Selecting delete shows a confirmation dialog that names the list.', async () => {

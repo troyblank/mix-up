@@ -175,9 +175,11 @@ describe('RandomItem', () => {
     ).toBeInTheDocument()
     expect(await findByText(itemName)).toBeInTheDocument()
     expect(
+      await findByRole('button', { name: /^add$/i }),
+    ).toBeInTheDocument()
+    expect(
       await findByRole('button', { name: /^refresh choice$/i }),
     ).toBeInTheDocument()
-    expect(queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument()
     expect(queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
   })
 
