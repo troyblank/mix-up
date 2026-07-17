@@ -4,6 +4,7 @@ import {
   deleteListItem,
   fetchLists,
   fetchList,
+  insertListItem,
   API_URL,
 } from './graphql'
 import { mockJsonResponse } from '../testing/mocks/api'
@@ -222,6 +223,88 @@ describe('Graphql', () => {
       mockFetchAuthSession.mockResolvedValue({ tokens: undefined })
 
       await expect(createList(input)).rejects.toThrow('Not Authenticated')
+    })
+  })
+
+  describe('insertListItem', () => {
+    const input = { listId: 'list-1', name: 'New item' }
+
+    it('Sends an insert mutation with variables.', async () => {
+      const mockFetch = jest.mocked(global.fetch)
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      mockFetch.mockResolvedValue(
+        mockJsonResponse(
+          true,
+          { data: { insertListItem: { id: 'item-1', name: input.name } } },
+          200,
+          API_URL,
+        ),
+      )
+
+      await insertListItem(input)
+
+      const body = JSON.parse(String(mockFetch.mock.calls[0][1]?.body ?? '{}'))
+      expect(body.query).toContain('insertListItem')
+      expect(body.variables).toEqual({ input })
+      expect(mockFetch).toHaveBeenCalledWith(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer signed-in-token',
+        },
+        body: expect.any(String),
+      })
+    })
+
+    it('Returns the inserted item when the API responds successfully.', async () => {
+      const insertedItem = { id: 'item-1', name: input.name }
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(
+          true,
+          { data: { insertListItem: insertedItem } },
+          200,
+          API_URL,
+        ),
+      )
+
+      const result = await insertListItem(input)
+
+      expect(result).toEqual(insertedItem)
+    })
+
+    it('Throws when insertListItem is missing from the response.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(true, { data: {} }, 200, API_URL),
+      )
+
+      await expect(insertListItem(input)).rejects.toThrow(
+        'Invalid insert list item response',
+      )
+    })
+
+    it('Throws when the server returns an error.', async () => {
+      mockFetchAuthSession.mockResolvedValue({
+        tokens: { idToken: { toString: () => 'signed-in-token' } },
+      } as Awaited<ReturnType<typeof fetchAuthSession>>)
+      jest.mocked(global.fetch).mockResolvedValue(
+        mockJsonResponse(false, { message: 'Server error' }, 500, API_URL),
+      )
+
+      await expect(insertListItem(input)).rejects.toThrow()
+    })
+
+    it('Throws when there is no signed-in session.', async () => {
+      mockFetchAuthSession.mockResolvedValue({ tokens: undefined })
+
+      await expect(insertListItem(input)).rejects.toThrow('Not Authenticated')
     })
   })
 
