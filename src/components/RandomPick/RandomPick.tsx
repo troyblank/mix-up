@@ -12,6 +12,7 @@ import { pickRandom } from '../../utils/random'
 import {
   AddItemInput,
   DeleteItemSelect,
+  EmptyListMessage,
   RandomPickWrapper,
   ListTitle,
   PickedItemDealing,
@@ -149,7 +150,9 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
       <RandomPickWrapper>
         <ListTitle>{list.name}</ListTitle>
         {list.items.length === 0 ? (
-          <p>This list has no items.</p>
+          <EmptyListMessage role={'status'}>
+            This list has no items.
+          </EmptyListMessage>
         ) : (
           <PickedItemDealing key={dealCycle}>{picked}</PickedItemDealing>
         )}

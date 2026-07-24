@@ -17,6 +17,7 @@ import {
   DeleteItemCheckboxInput,
   DeleteItemCheckboxLabel,
   DeleteItemCheckboxList,
+  EmptyListMessage,
   ListTitle,
   RandomPickWrapper,
   ShuffledList,
@@ -155,7 +156,9 @@ export const RandomList: FunctionComponent<RandomListProps> = ({ id }) => {
       <RandomPickWrapper>
         <ListTitle>{list.name}</ListTitle>
         {list.items.length === 0 ? (
-          <p>This list has no items.</p>
+          <EmptyListMessage role={'status'}>
+            This list has no items.
+          </EmptyListMessage>
         ) : (
           <ShuffledList>
             {orderedItems.map((item, index) => (

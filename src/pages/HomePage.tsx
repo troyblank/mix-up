@@ -3,6 +3,7 @@ import { useState } from 'react'
 import {
   ActionMenu,
   Categories,
+  CreateListDialog,
   RandomNumberRangeDialog,
   PlusIcon,
   ShuffleIcon,
@@ -23,6 +24,7 @@ const homeMenuActions = [
 ]
 
 export const HomePage: FunctionComponent = () => {
+  const [isCreateListOpen, setCreateListOpen] = useState(false)
   const [isRandomRangeOpen, setRandomRangeOpen] = useState(false)
 
   return (
@@ -34,13 +36,17 @@ export const HomePage: FunctionComponent = () => {
         onAction={(actionId) => {
           switch (actionId) {
             case 'add':
-              // coming soon
+              setCreateListOpen(true)
               break
             case 'random-from-range':
               setRandomRangeOpen(true)
               break
           }
         }}
+      />
+      <CreateListDialog
+        isOpen={isCreateListOpen}
+        onClose={() => setCreateListOpen(false)}
       />
       <RandomNumberRangeDialog
         isOpen={isRandomRangeOpen}

@@ -27,7 +27,7 @@ export const GlobalStyles = createGlobalStyle`
     min-width: 0;
     margin: 0 0 ${({ theme }) => theme.space.large};
     padding: ${({ theme }) => theme.space.medium};
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid ${({ theme }) => theme.color.inputBorder};
     border-radius: 6px;
     background: ${({ theme }) => theme.color.surface};
     color: ${({ theme }) => theme.color.text};
@@ -35,6 +35,11 @@ export const GlobalStyles = createGlobalStyle`
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
+
+    @media (max-width: ${({ theme }) => theme.size.small}) {
+      border-width: 1.5px;
+      border-color: ${({ theme }) => theme.color.inputBorderStrong};
+    }
   }
 
   textarea:focus,

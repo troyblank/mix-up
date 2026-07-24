@@ -1,4 +1,8 @@
-import styled, { css, keyframes } from 'styled-components'
+import styled, { keyframes } from 'styled-components'
+import {
+  selectChevronFieldStyles,
+  surfaceFieldStyles,
+} from '../../graphics'
 
 const dealCardIn = keyframes`
   from {
@@ -44,6 +48,30 @@ export const PickedItemDealing = styled(PickedItem)`
   }
 `
 
+export const EmptyListMessage = styled.p`
+  margin: 0;
+  padding: ${({ theme }) => theme.space.medium}
+    ${({ theme }) => theme.space.large};
+  border: 1px solid
+    color-mix(
+      in srgb,
+      ${({ theme }) => theme.color.warning} 45%,
+      transparent
+    );
+  border-radius: 6px;
+  background-color: color-mix(
+    in srgb,
+    ${({ theme }) => theme.color.warning} 10%,
+    transparent
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: ${({ theme }) => theme.color.warning};
+  font-size: 0.95rem;
+  font-weight: ${({ theme }) => theme.font.weightSemibold};
+  text-align: center;
+  line-height: 1.45;
+`
+
 export const ShuffledList = styled.ol`
   padding: 0;
   list-style-position: inside;
@@ -57,44 +85,17 @@ export const ShuffledListItem = styled.li`
   color: ${({ theme }) => theme.color.text};
 `
 
-const deleteItemSelectChevron = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath stroke='%23a8a8a8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E")`
-
-const itemFieldStyles = css`
-  display: block;
-  width: 100%;
-  margin: ${({ theme }) => theme.space.small} 0 0;
-  padding: ${({ theme }) => theme.space.medium};
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  background-color: ${({ theme }) => theme.color.surface};
-  color: ${({ theme }) => theme.color.text};
-  box-shadow: inset 0 1px 2px ${({ theme }) => theme.color.shadow};
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-
-  &:focus {
-    outline: 0;
-    border-color: ${({ theme }) => theme.color.accent};
-  }
-`
-
 export const AddItemInput = styled.input`
-  ${itemFieldStyles}
+  ${surfaceFieldStyles}
 `
 
 export const DeleteItemSelect = styled.select`
-  ${itemFieldStyles}
+  ${surfaceFieldStyles}
+  ${selectChevronFieldStyles}
   padding: ${({ theme }) => theme.space.medium}
     calc(${({ theme }) => theme.space.extraLarge} + 1.25rem)
     ${({ theme }) => theme.space.medium}
     ${({ theme }) => theme.space.medium};
-  appearance: none;
-  background-image: ${deleteItemSelectChevron};
-  background-repeat: no-repeat;
-  background-position: right ${({ theme }) => theme.space.medium} center;
-  background-size: 0.75rem;
-  cursor: pointer;
 `
 
 export const DeleteItemCheckboxList = styled.ul`
