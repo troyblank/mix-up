@@ -13,14 +13,17 @@ describe('HomePage', () => {
     ).toBeInTheDocument()
   })
 
-  it('Does not do anything yet when add is activated.', async () => {
+  it('Opens the create list dialog when add is activated.', async () => {
     const user = userEvent.setup()
-    const { findByRole, queryByRole } = render(<HomePage />, {
+    const { findByRole, getByRole, queryByRole } = render(<HomePage />, {
       wrapper: createAllWrappersWithoutAuth(),
     })
     await user.click(await findByRole('button', { name: /^add$/i }))
+    expect(getByRole('dialog', { name: 'New list' })).toBeInTheDocument()
+
+    await user.click(getByRole('button', { name: /^cancel$/i }))
     expect(
-      queryByRole('dialog', { name: 'Random number' }),
+      queryByRole('dialog', { name: 'New list' }),
     ).not.toBeInTheDocument()
   })
 

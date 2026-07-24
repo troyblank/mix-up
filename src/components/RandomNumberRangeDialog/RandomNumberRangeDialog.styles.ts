@@ -1,4 +1,5 @@
 import styled, { keyframes } from 'styled-components'
+import { dialogFieldStyles } from '../../graphics'
 
 const resultPickPulse = keyframes`
   0% {
@@ -87,20 +88,7 @@ export const Divider = styled.hr`
 `
 
 export const Input = styled.input`
-  width: 100%;
-  box-sizing: border-box;
-  padding: ${({ theme }) => theme.space.small}
-    ${({ theme }) => theme.space.medium};
-  border: 1px solid ${({ theme }) => theme.color.textMuted};
-  border-radius: 0.35rem;
-  font: inherit;
-  color: ${({ theme }) => theme.color.text};
-  background: ${({ theme }) => theme.color.bg};
-
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.accent};
-    outline-offset: 2px;
-  }
+  ${dialogFieldStyles}
 `
 
 export const ErrorText = styled.p`

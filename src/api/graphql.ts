@@ -38,7 +38,7 @@ export type CreateListInput = {
 
 export type CreateListResponse = {
   data: {
-    createList: Pick<List, 'id' | 'name' | 'type'>
+    createNewList: Pick<List, 'id' | 'name' | 'type'>
   }
 }
 
@@ -119,7 +119,7 @@ export const fetchList = async (
 
 const CREATE_LIST_MUTATION = `
   mutation CreateList($input: CreateListInput!) {
-    createList(input: $input) {
+    createNewList(input: $input) {
       id
       name
       type
@@ -138,10 +138,10 @@ export const createList = async (
     'Failed to create list',
     { requireAuth: true },
   )
-  if (data?.data?.createList == null) {
+  if (data?.data?.createNewList == null) {
     throw new Error('Invalid create list response')
   }
-  return data.data.createList
+  return data.data.createNewList
 }
 
 const INSERT_LIST_ITEM_MUTATION = `

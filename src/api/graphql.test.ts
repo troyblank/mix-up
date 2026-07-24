@@ -157,7 +157,7 @@ describe('Graphql', () => {
       mockFetch.mockResolvedValue(
         mockJsonResponse(
           true,
-          { data: { createList: createdList } },
+          { data: { createNewList: createdList } },
           200,
           API_URL,
         ),
@@ -166,7 +166,7 @@ describe('Graphql', () => {
       await createList(input)
 
       const body = JSON.parse(String(mockFetch.mock.calls[0][1]?.body ?? '{}'))
-      expect(body.query).toContain('createList')
+      expect(body.query).toContain('createNewList')
       expect(body.variables).toEqual({ input })
       expect(mockFetch).toHaveBeenCalledWith(API_URL, {
         method: 'POST',
@@ -185,7 +185,7 @@ describe('Graphql', () => {
       jest.mocked(global.fetch).mockResolvedValue(
         mockJsonResponse(
           true,
-          { data: { createList: createdList } },
+          { data: { createNewList: createdList } },
           200,
           API_URL,
         ),
@@ -196,7 +196,7 @@ describe('Graphql', () => {
       expect(result).toEqual(createdList)
     })
 
-    it('Throws when createList is missing from the response.', async () => {
+    it('Throws when createNewList is missing from the response.', async () => {
       mockFetchAuthSession.mockResolvedValue({
         tokens: { idToken: { toString: () => 'signed-in-token' } },
       } as Awaited<ReturnType<typeof fetchAuthSession>>)
