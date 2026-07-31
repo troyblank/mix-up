@@ -10,7 +10,7 @@ import { useDeleteListItems } from '../../hooks/useDeleteListItems'
 import { useInsertListItem } from '../../hooks/useInsertListItem'
 import { useList } from '../../hooks/useList'
 import { shuffleArray } from '../../utils/random'
-import { itemDisplayName } from '../RandomPick/utils'
+import { itemDisplayName, sortItemsAlphabetically } from '../RandomPick/utils'
 import {
   AddItemInput,
   DeleteItemCheckboxField,
@@ -41,6 +41,11 @@ export const RandomList: FunctionComponent<RandomListProps> = ({ id }) => {
     () => new Set(),
   )
   const addItemInputId = useId()
+
+  const deleteItems = useMemo(
+    () => (list?.items != null ? sortItemsAlphabetically(list.items) : []),
+    [list?.items],
+  )
 
   const menuActions = useMemo(
     () => [
@@ -132,7 +137,7 @@ export const RandomList: FunctionComponent<RandomListProps> = ({ id }) => {
       <>
         Select items to delete:
         <DeleteItemCheckboxList>
-          {list.items.map((item) => (
+          {deleteItems.map((item) => (
             <DeleteItemCheckboxField key={item.id}>
               <DeleteItemCheckboxLabel>
                 <DeleteItemCheckboxInput

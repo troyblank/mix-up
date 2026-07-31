@@ -1,6 +1,6 @@
 import Chance from 'chance'
 import { mockListItem } from '../../testing/mocks/lists'
-import { itemDisplayName, resolveDeleteTargetId } from './utils'
+import { itemDisplayName, resolveDeleteTargetId, sortItemsAlphabetically } from './utils'
 
 const chance = new Chance()
 
@@ -35,6 +35,40 @@ describe('Showing an item name in the delete dropdown', () => {
     const item = mockListItem({ name: undefined })
 
     expect(itemDisplayName(item)).toBe('Unnamed item')
+  })
+})
+
+describe('Sorting items alphabetically for delete controls', () => {
+  it('Returns items sorted by display name.', () => {
+    const zebra = mockListItem({ name: 'Zebra' })
+    const alpha = mockListItem({ name: 'Alpha' })
+    const middle = mockListItem({ name: 'Middle' })
+
+    expect(sortItemsAlphabetically([zebra, alpha, middle])).toEqual([
+      alpha,
+      middle,
+      zebra,
+    ])
+  })
+
+  it('Does not mutate the original array.', () => {
+    const items = [
+      mockListItem({ name: 'Zebra' }),
+      mockListItem({ name: 'Alpha' }),
+    ]
+
+    sortItemsAlphabetically(items)
+
+    expect(items.map((item) => item.name)).toEqual(['Zebra', 'Alpha'])
+  })
+
+  it('Sorts unnamed items using the Unnamed item label.', () => {
+    const named = mockListItem({ name: 'Beta' })
+    const unnamed = mockListItem({ name: '' })
+
+    expect(sortItemsAlphabetically([named, unnamed]).map(itemDisplayName)).toEqual(
+      ['Beta', 'Unnamed item'],
+    )
   })
 })
 

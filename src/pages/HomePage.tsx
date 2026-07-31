@@ -4,7 +4,9 @@ import {
   ActionMenu,
   Categories,
   CreateListDialog,
+  DeleteListDialog,
   RandomNumberRangeDialog,
+  DeleteIcon,
   PlusIcon,
   ShuffleIcon,
 } from '../components'
@@ -21,10 +23,16 @@ const homeMenuActions = [
     ariaLabel: 'Random from range',
     icon: <ShuffleIcon />,
   },
+  {
+    id: 'delete',
+    ariaLabel: 'Delete',
+    icon: <DeleteIcon />,
+  },
 ]
 
 export const HomePage: FunctionComponent = () => {
   const [isCreateListOpen, setCreateListOpen] = useState(false)
+  const [isDeleteListOpen, setDeleteListOpen] = useState(false)
   const [isRandomRangeOpen, setRandomRangeOpen] = useState(false)
 
   return (
@@ -41,12 +49,19 @@ export const HomePage: FunctionComponent = () => {
             case 'random-from-range':
               setRandomRangeOpen(true)
               break
+            case 'delete':
+              setDeleteListOpen(true)
+              break
           }
         }}
       />
       <CreateListDialog
         isOpen={isCreateListOpen}
         onClose={() => setCreateListOpen(false)}
+      />
+      <DeleteListDialog
+        isOpen={isDeleteListOpen}
+        onClose={() => setDeleteListOpen(false)}
       />
       <RandomNumberRangeDialog
         isOpen={isRandomRangeOpen}

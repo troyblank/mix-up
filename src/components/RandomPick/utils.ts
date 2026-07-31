@@ -5,6 +5,11 @@ export const itemDisplayName = (item: ListItem): string => {
   return name !== '' && name != null ? name : 'Unnamed item'
 }
 
+export const sortItemsAlphabetically = (items: ListItem[]): ListItem[] =>
+  [...items].sort((a, b) =>
+    itemDisplayName(a).localeCompare(itemDisplayName(b)),
+  )
+
 export const resolveDeleteTargetId = (
   items: ListItem[],
   pickedName: string | null,
