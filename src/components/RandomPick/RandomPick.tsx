@@ -17,7 +17,11 @@ import {
   ListTitle,
   PickedItemDealing,
 } from './RandomPick.styles'
-import { itemDisplayName, resolveDeleteTargetId } from './utils'
+import {
+  itemDisplayName,
+  resolveDeleteTargetId,
+  sortItemsAlphabetically,
+} from './utils'
 
 type RandomPickProps = {
   id: string | undefined
@@ -35,6 +39,11 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const addItemInputId = useId()
   const deleteItemSelectId = useId()
+
+  const deleteItems = useMemo(
+    () => (list?.items != null ? sortItemsAlphabetically(list.items) : []),
+    [list?.items],
+  )
 
   const menuActions = useMemo(
     () => [
@@ -128,7 +137,7 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
           disabled={deleteListItemMutation.isPending}
           onChange={(event) => setDeleteTargetId(event.target.value)}
         >
-          {list.items.map((item) => (
+          {deleteItems.map((item) => (
             <option key={item.id} value={item.id}>
               {itemDisplayName(item)}
             </option>

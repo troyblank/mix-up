@@ -453,6 +453,38 @@ describe('RandomList', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('Shows items in alphabetical order in the delete checkboxes.', async () => {
+    const user = userEvent.setup()
+    const items = [
+      mockListItem({ name: 'Zebra' }),
+      mockListItem({ name: 'Alpha' }),
+      mockListItem({ name: 'Middle' }),
+    ]
+    const list = mockListWithItems({
+      id: listId,
+      type: 'list',
+      items,
+    })
+    mockUseList.mockReturnValue({
+      data: list,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useList>)
+
+    const { findByRole, getByRole } = render(<RandomList id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const dialog = getByRole('dialog', { name: /^delete items\?$/i })
+    const checkboxLabels = within(dialog)
+      .getAllByRole('checkbox')
+      .map((checkbox) => checkbox.getAttribute('aria-label'))
+    expect(checkboxLabels).toEqual(['Alpha', 'Middle', 'Zebra'])
+  })
+
   it('Lets you uncheck a selected item in the delete dialog.', async () => {
     const user = userEvent.setup()
     const items = [

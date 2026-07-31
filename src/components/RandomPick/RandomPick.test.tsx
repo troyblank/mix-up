@@ -693,6 +693,30 @@ describe('RandomPick', () => {
     resolveDeleteTargetIdSpy.mockRestore()
   })
 
+  it('Shows items in alphabetical order in the delete select.', async () => {
+    const items = [
+      mockListItem({ name: 'Zebra' }),
+      mockListItem({ name: 'Alpha' }),
+      mockListItem({ name: 'Middle' }),
+    ]
+    listWithItems = mockListWithItems({ id: listId, items })
+
+    const user = userEvent.setup()
+    const { findByRole, getByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^delete$/i }))
+
+    const itemSelect = within(
+      getByRole('dialog', { name: /^delete item\?$/i }),
+    ).getByRole('combobox', { name: /^item to delete$/i })
+    const options = Array.from(itemSelect.querySelectorAll('option')).map(
+      (option) => option.textContent,
+    )
+    expect(options).toEqual(['Alpha', 'Middle', 'Zebra'])
+  })
+
   it('Ignores close requests while delete is pending.', async () => {
     mockConfirmDialog.mockImplementation(({ isOpen, onClose, onConfirm, title }) =>
       isOpen ? (
