@@ -258,6 +258,41 @@ describe('RandomPick', () => {
     ).toBeInTheDocument()
   })
 
+  it('Opens the list view dialog when view list is selected.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, queryByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^view list$/i }))
+
+    expect(
+      queryByRole('dialog', { name: new RegExp(`^${listWithItems.name}$`, 'i') }),
+    ).toBeInTheDocument()
+  })
+
+  it('Closes the list view dialog when escape is pressed.', async () => {
+    const user = userEvent.setup()
+    const { findByRole, queryByRole } = render(<RandomPick id={listId} />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    await user.click(await findByRole('button', { name: /^view list$/i }))
+    expect(
+      queryByRole('dialog', { name: new RegExp(`^${listWithItems.name}$`, 'i') }),
+    ).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    await waitFor(() => {
+      expect(
+        queryByRole('dialog', {
+          name: new RegExp(`^${listWithItems.name}$`, 'i'),
+        }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
   it('Closes the add dialog when cancel is clicked before submit.', async () => {
     const user = userEvent.setup()
     const { findByRole, getByRole, queryByRole } = render(

@@ -1,4 +1,5 @@
 export * from './DeleteIcon'
+export * from './ListIcon'
 export * from './PlusIcon'
 export * from './RefreshIcon'
 export * from './ShuffleIcon'

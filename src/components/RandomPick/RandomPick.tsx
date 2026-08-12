@@ -2,7 +2,8 @@ import type { FunctionComponent } from 'react'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { ActionMenu } from '../ActionMenu'
 import { ConfirmDialog } from '../ConfirmDialog'
-import { DeleteIcon, PlusIcon, RefreshIcon } from '../icons'
+import { ListViewDialog } from '../ListViewDialog'
+import { DeleteIcon, ListIcon, PlusIcon, RefreshIcon } from '../icons'
 import { ErrorAlert } from '../ErrorAlert'
 import { Loader } from '../Loader'
 import { useDeleteListItem } from '../../hooks/useDeleteListItem'
@@ -36,6 +37,7 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [addItemName, setAddItemName] = useState('')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isListViewDialogOpen, setIsListViewDialogOpen] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const addItemInputId = useId()
   const deleteItemSelectId = useId()
@@ -47,6 +49,11 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
 
   const menuActions = useMemo(
     () => [
+      {
+        id: 'view-list',
+        ariaLabel: 'View list',
+        icon: <ListIcon />,
+      },
       {
         id: 'add',
         ariaLabel: 'Add',
@@ -97,6 +104,11 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
   ])
 
   const onMenuAction = (actionId: string) => {
+    if (actionId === 'view-list') {
+      setIsListViewDialogOpen(true)
+      return
+    }
+
     if (actionId === 'add') {
       setAddItemName('')
       setIsAddDialogOpen(true)
@@ -167,6 +179,12 @@ export const RandomPick: FunctionComponent<RandomPickProps> = ({ id }) => {
         )}
       </RandomPickWrapper>
       <ActionMenu actions={menuActions} onAction={onMenuAction} />
+      <ListViewDialog
+        isOpen={isListViewDialogOpen}
+        onClose={() => setIsListViewDialogOpen(false)}
+        title={list.name}
+        items={list.items}
+      />
       <ConfirmDialog
         isOpen={isAddDialogOpen}
         title={'Add item'}
