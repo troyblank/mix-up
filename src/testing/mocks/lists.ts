@@ -10,6 +10,7 @@ export function mockList(override?: Partial<List>): List {
     id: chance.guid(),
     name: chance.sentence({ words: 2 }).replace(/\.$/, ''),
     type: chance.pickone(['pick', 'list']),
+    isPrivate: false,
     ...override,
   }
 }

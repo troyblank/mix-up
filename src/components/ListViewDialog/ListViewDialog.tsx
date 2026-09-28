@@ -37,7 +37,7 @@ export const ListViewDialog: FunctionComponent<ListViewDialogProps> = ({
         {sortedItems.length === 0 ? (
           <EmptyListMessage role={'status'}>This list has no items.</EmptyListMessage>
         ) : (
-          <ListViewItems>
+          <ListViewItems $digitCount={String(sortedItems.length).length}>
             {sortedItems.map((item) => (
               <ListViewItem key={item.id}>{itemDisplayName(item)}</ListViewItem>
             ))}

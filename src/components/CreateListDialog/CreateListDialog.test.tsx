@@ -36,15 +36,18 @@ describe('Create list dialog', () => {
 
     const nameInput = getByLabelText(/^name$/i)
     const typeSelect = getByLabelText(/^type$/i)
+    const privateCheckbox = getByLabelText(/^only visible to me$/i)
 
     expect(nameInput).toHaveValue('')
     expect(typeSelect).toHaveValue('pick')
+    expect(privateCheckbox).not.toBeChecked()
 
     rerender(<CreateListDialog isOpen={false} onClose={jest.fn()} />)
     rerender(<CreateListDialog isOpen={true} onClose={jest.fn()} />)
 
     expect(getByLabelText(/^name$/i)).toHaveValue('')
     expect(getByLabelText(/^type$/i)).toHaveValue('pick')
+    expect(getByLabelText(/^only visible to me$/i)).not.toBeChecked()
   })
 
   it('Creates a list with the entered name and selected type.', async () => {
@@ -66,6 +69,30 @@ describe('Create list dialog', () => {
     expect(mockCreateList).toHaveBeenCalledWith({
       name: listName,
       type: 'list',
+    })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('Creates a private list when the visibility checkbox is checked.', async () => {
+    const user = userEvent.setup()
+    const onClose = jest.fn()
+    const createdList = mockList({ type: 'pick', isPrivate: true })
+    mockCreateList.mockResolvedValue(createdList)
+
+    const { getByLabelText, getByRole } = render(
+      <CreateListDialog isOpen={true} onClose={onClose} />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    const listName = chance.word()
+    await user.type(getByLabelText(/^name$/i), listName)
+    await user.click(getByLabelText(/^only visible to me$/i))
+    await user.click(getByRole('button', { name: /^create$/i }))
+
+    expect(mockCreateList).toHaveBeenCalledWith({
+      name: listName,
+      type: 'pick',
+      isPrivate: true,
     })
     expect(onClose).toHaveBeenCalled()
   })

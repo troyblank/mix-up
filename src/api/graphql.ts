@@ -8,6 +8,7 @@ export type List = {
   id: string
   name: string
   type: ListType
+  isPrivate?: boolean
 }
 
 export type ListItem = {
@@ -34,11 +35,12 @@ export type ListResponse = {
 export type CreateListInput = {
   name: string
   type: ListType
+  isPrivate?: boolean
 }
 
 export type CreateListResponse = {
   data: {
-    createNewList: Pick<List, 'id' | 'name' | 'type'>
+    createNewList: Pick<List, 'id' | 'name' | 'type' | 'isPrivate'>
   }
 }
 
@@ -133,13 +135,14 @@ const CREATE_LIST_MUTATION = `
       id
       name
       type
+      isPrivate
     }
   }
 `
 
 export const createList = async (
   input: CreateListInput,
-): Promise<Pick<List, 'id' | 'name' | 'type'>> => {
+): Promise<Pick<List, 'id' | 'name' | 'type' | 'isPrivate'>> => {
   const data = await postGraphql<CreateListResponse>(
     {
       query: CREATE_LIST_MUTATION,
