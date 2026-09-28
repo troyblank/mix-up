@@ -24,3 +24,19 @@ export const Select = styled.select`
   ${selectChevronFieldStyles}
   padding-right: calc(${({ theme }) => theme.space.extraLarge} + 1.25rem);
 `
+
+export const CheckboxField = styled(Field)`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.small};
+`
+
+export const CheckboxLabel = styled(Label)`
+  margin-bottom: 0;
+`
+
+export const Checkbox = styled.input`
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+`

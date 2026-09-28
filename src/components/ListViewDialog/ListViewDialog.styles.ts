@@ -14,9 +14,14 @@ export const ListViewTitle = styled.h2`
   text-align: center;
 `
 
-export const ListViewItems = styled.ol`
+// overflow-y: auto makes the list a scroll container, which clips outside
+// markers that overflow the left padding. Reserve room for the widest number
+// (one ch per digit) so "100." and beyond are never cut off.
+export const ListViewItems = styled.ol<{ $digitCount: number }>`
   margin: 0;
-  padding-left: ${({ theme }) => theme.space.large};
+  padding-left: calc(
+    ${({ $digitCount }) => $digitCount}ch + ${({ theme }) => theme.space.extraSmall}
+  );
   overflow-y: auto;
 `
 

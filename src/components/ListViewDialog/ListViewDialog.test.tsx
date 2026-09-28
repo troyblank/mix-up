@@ -49,6 +49,26 @@ describe('ListViewDialog', () => {
     expect(renderedItems).toEqual(['Alpha', 'Middle', 'Zebra'])
   })
 
+  it('Leaves room for three-digit numbering so long lists are not cut off.', () => {
+    const manyItems = Array.from({ length: 120 }, (_, index) =>
+      mockListItem({ name: `Item ${String(index).padStart(3, '0')}` }),
+    )
+
+    const { getByRole } = render(
+      <ListViewDialog
+        isOpen={true}
+        onClose={jest.fn()}
+        title={title}
+        items={manyItems}
+      />,
+      { wrapper: createAllWrappersWithoutAuth() },
+    )
+
+    const list = within(getByRole('dialog')).getByRole('list')
+
+    expect(list).toHaveStyle({ paddingLeft: 'calc(3ch + 0.25rem)' })
+  })
+
   it('Shows an empty message when there are no items.', () => {
     const { getByRole, getByText } = render(
       <ListViewDialog

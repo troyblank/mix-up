@@ -6,7 +6,7 @@ import { useCreateList } from '../../hooks/useCreateList'
 import { PrimaryButton, SecondaryButton } from '../AppButton'
 import { Actions, Dialog, DialogTitle } from '../Dialog'
 import { ErrorAlert } from '../ErrorAlert'
-import { Field, Input, Label, Select } from './CreateListDialog.styles'
+import { Field, Input, Label, Select, Checkbox, CheckboxField, CheckboxLabel } from './CreateListDialog.styles'
 
 const LIST_TYPE_OPTIONS: { value: ListType; label: string }[] = [
   { value: 'pick', label: 'Pick one' },
@@ -25,8 +25,10 @@ export const CreateListDialog: FunctionComponent<CreateListDialogProps> = ({
   const titleId = useId()
   const nameId = useId()
   const typeId = useId()
+  const privateId = useId()
   const [name, setName] = useState('')
   const [type, setType] = useState<ListType>('pick')
+  const [isPrivate, setIsPrivate] = useState(false)
   const createListMutation = useCreateList()
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export const CreateListDialog: FunctionComponent<CreateListDialogProps> = ({
 
     setName('')
     setType('pick')
+    setIsPrivate(false)
   }, [isOpen])
 
   const handleClose = () => {
@@ -48,7 +51,7 @@ export const CreateListDialog: FunctionComponent<CreateListDialogProps> = ({
     if (trimmedName.length === 0) return
 
     createListMutation.mutate(
-      { name: trimmedName, type },
+      { name: trimmedName, type, ...(isPrivate ? { isPrivate: true } : {}) },
       { onSuccess: () => onClose() },
     )
   }
@@ -87,6 +90,16 @@ export const CreateListDialog: FunctionComponent<CreateListDialogProps> = ({
             ))}
           </Select>
         </Field>
+        <CheckboxField>
+          <Checkbox
+            id={privateId}
+            type={'checkbox'}
+            checked={isPrivate}
+            disabled={createListMutation.isPending}
+            onChange={(event) => setIsPrivate(event.target.checked)}
+          />
+          <CheckboxLabel htmlFor={privateId}>Only visible to me</CheckboxLabel>
+        </CheckboxField>
         {createListMutation.isError && (
           <ErrorAlert
             message={'Failed to create list'}
