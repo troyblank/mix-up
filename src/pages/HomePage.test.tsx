@@ -34,6 +34,17 @@ describe('HomePage', () => {
     ).toBeInTheDocument()
   })
 
+  it('Leaves space under the list so the bottom buttons do not cover the last item.', async () => {
+    const { findByRole } = render(<HomePage />, {
+      wrapper: createAllWrappersWithoutAuth(),
+    })
+
+    expect(await findByRole('main')).toHaveStyle({
+      paddingBottom:
+        'calc(calc(3rem + env(safe-area-inset-bottom, 0px)) + 3.5rem + 1rem)',
+    })
+  })
+
   it('Opens the create list dialog when add is activated.', async () => {
     const user = userEvent.setup()
     const { findByRole, getByRole, queryByRole } = render(<HomePage />, {
